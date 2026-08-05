@@ -536,15 +536,18 @@
                 const res = await fetch(url);
                 const json = await res.json();
                 if (json.success) {
-                    msg.textContent = `Data Sudah Tersubmit (${json.count} catatan disimpan)`;
+                    msg.textContent = `Data Sudah Tersubmit (${json.count} catatan disimpan). Menyiapkan laporan PDF & mengirim email ke admin...`;
                     msg.className = 'text-xs text-center mt-2 text-green-600';
                     msg.classList.remove('hidden');
+
+                    await autoSendReportAfterSubmit(currentGroup, draftPeriod);
+
                     setTimeout(() => {
                         draftEntries = [];
                         document.getElementById('groupDraftWrap').classList.add('hidden');
                         document.getElementById('groupInputFormWrap').classList.remove('hidden');
                         loadGroupTable();
-                    }, 1200);
+                    }, 2500);
                 } else {
                     msg.textContent = 'Gagal: ' + json.error;
                     msg.className = 'text-xs text-center mt-2 text-red-600';
@@ -568,6 +571,37 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        /**
+         * Dipanggil OTOMATIS begitu bendahara submit setoran.
+         * Download PDF + kirim email ke admin, tanpa perlu klik tombol apapun.
+         * Tidak mengganggu tampilan Input Setoran (berjalan di belakang layar).
+         */
+        async function autoSendReportAfterSubmit(group, period) {
+            const msg = document.getElementById('bulkMsg');
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=downloadReport&group=${encodeURIComponent(group)}&period=${encodeURIComponent(period)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.success) {
+                    downloadBase64File(json.pdfBase64, json.filenamePdf, 'application/pdf');
+                    if (msg) {
+                        msg.textContent = 'Data tersimpan. Laporan PDF terunduh & email terkirim ke admin.';
+                        msg.className = 'text-xs text-center mt-2 text-green-600';
+                    }
+                } else {
+                    if (msg) {
+                        msg.textContent = 'Data tersimpan, tapi laporan PDF/email gagal dibuat: ' + json.error;
+                        msg.className = 'text-xs text-center mt-2 text-amber-600';
+                    }
+                }
+            } catch (err) {
+                if (msg) {
+                    msg.textContent = 'Data tersimpan, tapi gagal mengirim laporan otomatis: ' + err.message;
+                    msg.className = 'text-xs text-center mt-2 text-amber-600';
+                }
+            }
         }
 
         async function downloadReport() {
