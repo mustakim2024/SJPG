@@ -342,6 +342,25 @@
         let reportData = { individual: [], groupTotal: [] };
 
         function fmtRp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+
+        /**
+         * Format live saat mengetik: 50000 -> 50.000. Dipasang di oninput
+         * kolom-kolom jumlah setoran, supaya user langsung lihat format Rupiah
+         * begitu mengetik, bukan cuma setelah tersimpan.
+         */
+        function formatRupiahField(input) {
+            const cursorFromEnd = input.value.length - input.selectionStart;
+            const digits = input.value.replace(/\D/g, '');
+            input.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+            const pos = Math.max(0, input.value.length - cursorFromEnd);
+            input.setSelectionRange(pos, pos);
+        }
+
+        /** Ubah kembali teks berformat ("50.000") jadi angka murni (50000) untuk dikirim ke server. */
+        function unformatRupiah(str) {
+            const digits = String(str || '').replace(/\D/g, '');
+            return digits ? Number(digits) : 0;
+        }
         function currentMonthStr() {
             const d = new Date();
             return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -474,9 +493,9 @@
                     tbody.innerHTML = json.data.map(m => `
                         <tr class="border-t border-gray-100" data-name="${m.name}">
                             <td class="p-2 font-bold">${m.name}</td>
-                            <td class="p-1"><input type="number" min="0" class="w-full border rounded-lg p-1.5 text-sm itb-input" placeholder="0"></td>
-                            <td class="p-1"><input type="number" min="0" class="w-full border rounded-lg p-1.5 text-sm iwb-input" placeholder="0"></td>
-                            <td class="p-1"><input type="number" min="0" class="w-full border rounded-lg p-1.5 text-sm ss-input" placeholder="0"></td>
+                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this)" class="w-full border rounded-lg p-1.5 text-sm itb-input text-right" placeholder="0"></td>
+                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this)" class="w-full border rounded-lg p-1.5 text-sm iwb-input text-right" placeholder="0"></td>
+                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this)" class="w-full border rounded-lg p-1.5 text-sm ss-input text-right" placeholder="0"></td>
                         </tr>
                     `).join('') || '<tr><td colspan="4" class="p-3 text-center text-xs text-gray-400">Belum ada anggota di kelompok ini</td></tr>';
                 }
@@ -502,9 +521,9 @@
             const entries = [];
             rows.forEach(tr => {
                 const name = tr.dataset.name;
-                const itb = Number(tr.querySelector('.itb-input').value) || 0;
-                const iwb = Number(tr.querySelector('.iwb-input').value) || 0;
-                const ss = Number(tr.querySelector('.ss-input').value) || 0;
+                const itb = unformatRupiah(tr.querySelector('.itb-input').value);
+                const iwb = unformatRupiah(tr.querySelector('.iwb-input').value);
+                const ss = unformatRupiah(tr.querySelector('.ss-input').value);
                 if (itb > 0 || iwb > 0 || ss > 0) {
                     entries.push({ name, ITB: itb, IWB: iwb, SS: ss });
                 }
@@ -1221,7 +1240,7 @@
                             <option value="IWB" ${r.type === 'IWB' ? 'selected' : ''}>IWB</option>
                             <option value="SS" ${r.type === 'SS' ? 'selected' : ''}>SS</option>
                         </select>
-                        <input type="number" id="edit-amount-${uid}" value="${r.amount}" class="border rounded-lg p-1.5 text-xs w-24">
+                        <input type="text" inputmode="numeric" oninput="formatRupiahField(this)" id="edit-amount-${uid}" value="${Number(r.amount).toLocaleString('id-ID')}" class="border rounded-lg p-1.5 text-xs w-28 text-right">
                         <input type="month" id="edit-period-${uid}" value="${r.period}" class="border rounded-lg p-1.5 text-xs">
                         <button onclick="saveEditSetoran('${r.year}', ${r.row})" class="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg">Simpan</button>
                     </div>
@@ -1237,7 +1256,7 @@
             const uid = year + '_' + row;
             const name = document.getElementById('edit-name-' + uid).value;
             const type = document.getElementById('edit-type-' + uid).value;
-            const amount = document.getElementById('edit-amount-' + uid).value;
+            const amount = unformatRupiah(document.getElementById('edit-amount-' + uid).value);
             const period = document.getElementById('edit-period-' + uid).value;
             try {
                 const url = `${APPS_SCRIPT_URL}?action=updateSetoran&year=${encodeURIComponent(year)}&row=${row}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&amount=${encodeURIComponent(amount)}&period=${encodeURIComponent(period)}`;
