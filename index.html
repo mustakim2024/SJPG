@@ -66,10 +66,8 @@
                 </div>
 
                 <div id="groupDraftWrap" class="hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="font-bold text-sm">Draft — Periksa Sebelum Disimpan</h4>
-                        <span class="text-xs text-gray-500" id="draftPeriodLabel"></span>
-                    </div>
+                    <h4 class="font-bold text-sm mb-2">Draft — Periksa Sebelum Disimpan</h4>
+                    <div class="bg-primary text-white font-bold text-xl text-center py-4 rounded-2xl mb-3 shadow" id="draftPeriodLabel"></div>
                     <p class="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg p-2 mb-3">Ini masih draft, belum tersimpan. Periksa dulu angkanya sebelum submit.</p>
                     <div class="overflow-x-auto border border-gray-100 rounded-xl">
                         <table class="w-full text-sm">
@@ -542,8 +540,16 @@
             document.getElementById('draftMsg').classList.add('hidden');
         }
 
+        const BULAN_ID_LONG = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        function periodLabelID(period) {
+            if (!period) return '';
+            const parts = period.split('-');
+            const idx = parseInt(parts[1], 10) - 1;
+            return (BULAN_ID_LONG[idx] || parts[1]) + ' ' + parts[0];
+        }
+
         function renderDraft() {
-            document.getElementById('draftPeriodLabel').textContent = 'Bulan: ' + draftPeriod;
+            document.getElementById('draftPeriodLabel').textContent = periodLabelID(draftPeriod);
             document.getElementById('draftTableBody').innerHTML = draftEntries.map(e => `
                 <tr class="border-t border-gray-100">
                     <td class="p-2 font-bold">${e.name}</td>
@@ -572,7 +578,7 @@
                 const res = await fetch(url);
                 const json = await res.json();
                 if (json.success) {
-                    msg.textContent = `Data Sudah Tersubmit (${json.count} catatan disimpan). Menyiapkan laporan PDF & mengirim email ke admin...`;
+                    msg.textContent = `Data Sudah Tersubmit. Menyiapkan laporan PDF & mengirim email ke admin...`;
                     msg.className = 'text-xs text-center mt-2 text-green-600';
                     msg.classList.remove('hidden');
 
