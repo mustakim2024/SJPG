@@ -1158,7 +1158,7 @@
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=deleteSetoranByYear&year=${encodeURIComponent(year)}`);
                 const json = await res.json();
                 if (json.success) {
-                    showMsg('delYearMsg', `Berhasil menghapus sheet Setoran_${year} (${json.deleted} catatan).`, false);
+                    showMsg('delYearMsg', `Data transaksi tahun ${year} berhasil dihapus.`, false);
                     initKelolaSetoran();
                 } else {
                     showMsg('delYearMsg', 'Gagal: ' + json.error, true);
@@ -1178,7 +1178,7 @@
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=deleteSetoranByMonth&period=${encodeURIComponent(period)}`);
                 const json = await res.json();
                 if (json.success) {
-                    showMsg('delMonthMsg', `Berhasil menghapus ${json.deleted} catatan data periode ${period}.`, false);
+                    showMsg('delMonthMsg', `Data transaksi bulan ${periodLabelID(period)} berhasil dihapus.`, false);
                 } else {
                     showMsg('delMonthMsg', 'Gagal: ' + json.error, true);
                 }
@@ -1200,7 +1200,7 @@
                 const res = await fetch(url);
                 const json = await res.json();
                 if (json.success) {
-                    showMsg('delMGMsg', `Berhasil menghapus ${json.deleted} catatan kelompok ${group} periode ${period}.`, false);
+                    showMsg('delMGMsg', `Data transaksi bulan ${periodLabelID(period)} untuk kelompok ${group} berhasil dihapus.`, false);
                 } else {
                     showMsg('delMGMsg', 'Gagal: ' + json.error, true);
                 }
