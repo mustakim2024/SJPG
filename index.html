@@ -574,7 +574,7 @@
             btn.disabled = true;
             btn.textContent = 'Menyimpan...';
             try {
-                const url = `${APPS_SCRIPT_URL}?action=bulkAddSetoran&period=${encodeURIComponent(draftPeriod)}&entries=${encodeURIComponent(JSON.stringify(draftEntries))}`;
+                const url = `${APPS_SCRIPT_URL}?action=bulkAddSetoran&group=${encodeURIComponent(currentGroup)}&period=${encodeURIComponent(draftPeriod)}&entries=${encodeURIComponent(JSON.stringify(draftEntries))}`;
                 const res = await fetch(url);
                 const json = await res.json();
                 if (json.success) {
@@ -590,6 +590,10 @@
                         document.getElementById('groupInputFormWrap').classList.remove('hidden');
                         loadGroupTable();
                     }, 2500);
+                } else if (json.duplicate) {
+                    msg.textContent = json.error;
+                    msg.className = 'text-xs text-center mt-2 text-amber-600 font-bold';
+                    msg.classList.remove('hidden');
                 } else {
                     msg.textContent = 'Gagal: ' + json.error;
                     msg.className = 'text-xs text-center mt-2 text-red-600';
