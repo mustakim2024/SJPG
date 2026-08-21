@@ -41,7 +41,10 @@
 
             <!-- ===== TAMPILAN KELOMPOK (non-admin) ===== -->
             <section id="tabGroupInput" class="hidden">
-                <h3 class="font-bold mb-3">Input Setoran Kelompok <span id="groupNameLabel" class="text-primary"></span></h3>
+                <div class="flex items-center gap-2 mb-3">
+                    <h3 class="font-bold">Input Setoran Kelompok <span id="groupNameLabel" class="text-primary"></span></h3>
+                    <button onclick="loadGroupTable()" title="Refresh data" class="text-gray-400 hover:text-primary transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+                </div>
 
                 <div id="groupInputFormWrap">
                     <div class="mb-3">
@@ -53,6 +56,7 @@
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="text-left p-2 font-bold">Nama</th>
+                                    <th class="text-left p-2 font-bold w-28">Penghasilan</th>
                                     <th class="text-left p-2 font-bold w-24">ITB</th>
                                     <th class="text-left p-2 font-bold w-24">IWB</th>
                                     <th class="text-left p-2 font-bold w-24">SS</th>
@@ -60,6 +64,12 @@
                             </thead>
                             <tbody id="groupInputTableBody"></tbody>
                         </table>
+                    </div>
+                    <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 mt-4 text-sm space-y-1">
+                        <div class="flex justify-between"><span class="text-gray-500">Hak Group (25% IWB)</span><span class="font-bold" id="ringkasanHakGroup">Rp 0</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">IWB Disetor (75% IWB)</span><span class="font-bold" id="ringkasanIwbDisetor">Rp 0</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">SS Disetor</span><span class="font-bold" id="ringkasanSsDisetor">Rp 0</span></div>
+                        <div class="flex justify-between border-t border-gray-200 pt-1 mt-1"><span class="font-bold">Total Disetor</span><span class="font-bold text-primary" id="ringkasanTotalDisetor">Rp 0</span></div>
                     </div>
                     <button id="submitBulkBtn" onclick="buildDraft()" class="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold hover:bg-orange-700 transition-colors shadow-lg">Tinjau Setoran</button>
                     <p id="bulkMsg" class="text-xs text-center mt-2 hidden"></p>
@@ -74,6 +84,7 @@
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="text-left p-2 font-bold">Nama</th>
+                                    <th class="text-right p-2 font-bold">Penghasilan</th>
                                     <th class="text-right p-2 font-bold">ITB</th>
                                     <th class="text-right p-2 font-bold">IWB</th>
                                     <th class="text-right p-2 font-bold">SS</th>
@@ -96,6 +107,9 @@
 
                 <!-- ================= ADMIN DASHBOARD ================= -->
                 <div id="adminDashboardWrap" class="hidden">
+                    <div class="flex justify-end mb-2">
+                        <button onclick="initAdminDashboard()" title="Refresh data" class="text-gray-400 hover:text-primary transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+                    </div>
 
                     <!-- KPI CARDS -->
                     <div id="kpiCards" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6"></div>
@@ -151,6 +165,10 @@
                                 <p class="font-bold text-sm mb-3">Distribusi Pembayaran</p>
                                 <div class="relative" style="height:200px"><canvas id="chartMonthlyDoughnut"></canvas></div>
                                 <p class="text-xs text-gray-400 mt-3 text-center">Klik chart untuk melihat daftar kelompok.</p>
+                                <div class="border-t border-gray-100 mt-3 pt-3 text-center cursor-pointer" onclick="showTidakWajibList()">
+                                    <p class="text-xs text-gray-400">Tidak Wajib (Penghasilan &lt; Rp 3.500.000)</p>
+                                    <p class="font-bold text-lg text-amber-600" id="statTidakWajib">0 orang</p>
+                                </div>
                             </div>
                             <div class="border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow lg:col-span-2">
                                 <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -194,7 +212,9 @@
                 <!-- ================= LAPORAN KELOMPOK (non-admin) ================= -->
                 <div id="groupDashboardWrap" class="hidden">
                     <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
-                        <h3 class="font-bold" id="dashboardTitle">Dashboard</h3>
+                        <h3 class="font-bold flex items-center gap-2" id="dashboardTitle">Dashboard
+                            <button onclick="loadReport()" title="Refresh data" class="text-gray-400 hover:text-primary transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+                        </h3>
                         <select id="monthFilter" onchange="loadReport()" class="text-xs border rounded-lg p-1 text-primary focus:outline-none">
                             <option value="all">Semua (Akumulasi)</option>
                         </select>
@@ -219,7 +239,10 @@
 
             <!-- ===== KELOLA SETORAN (admin) ===== -->
             <section id="tabKelolaSetoran" class="hidden">
-                <h3 class="font-bold mb-3">Kelola Setoran</h3>
+                <div class="flex items-center gap-2 mb-3">
+                    <h3 class="font-bold">Kelola Setoran</h3>
+                    <button onclick="initKelolaSetoran()" title="Refresh data" class="text-gray-400 hover:text-primary transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+                </div>
 
                 <!-- SUB-TAB TOGGLE -->
                 <div class="flex gap-2 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
@@ -325,7 +348,10 @@
                     </div>
                     <button onclick="addMember()" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">Tambah</button>
                 </div>
-                <h3 class="font-bold mb-3">Daftar Anggota</h3>
+                <div class="flex items-center gap-2 mb-3">
+                    <h3 class="font-bold">Daftar Anggota</h3>
+                    <button onclick="loadMemberList()" title="Refresh data" class="text-gray-400 hover:text-primary transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+                </div>
                 <div id="memberListWrap" class="space-y-2"></div>
             </section>
 
@@ -358,6 +384,51 @@
         function unformatRupiah(str) {
             const digits = String(str || '').replace(/\D/g, '');
             return digits ? Number(digits) : 0;
+        }
+
+        /**
+         * Hitung ITB/IWB/SS otomatis dari Penghasilan per Bulan, sesuai aturan:
+         * ITB tetap Rp 50.000. IWB: <3,5jt = 0; 3,5jt-8jt = 1,5%; >8jt = 4%. SS: 1%.
+         * Hasilnya mengisi kolom ITB/IWB/SS di baris yang sama, TAPI tetap bisa diedit manual setelahnya.
+         */
+        function hitungOtomatisRow(incomeInput) {
+            const tr = incomeInput.closest('tr');
+            const income = unformatRupiah(incomeInput.value);
+            const itb = income > 0 ? 50000 : 0;
+            let iwb = 0;
+            if (income > 8000000) iwb = Math.round(income * 0.04);
+            else if (income >= 3500000) iwb = Math.round(income * 0.015);
+            const ss = income > 0 ? Math.round(income * 0.01) : 0;
+
+            const itbInput = tr.querySelector('.itb-input');
+            const iwbInput = tr.querySelector('.iwb-input');
+            const ssInput = tr.querySelector('.ss-input');
+            itbInput.value = itb ? itb.toLocaleString('id-ID') : '';
+            iwbInput.value = iwb ? iwb.toLocaleString('id-ID') : '';
+            ssInput.value = ss ? ss.toLocaleString('id-ID') : '';
+            updateRingkasan();
+        }
+
+        /** Hitung ulang Hak Group / IWB Disetor / SS Disetor / Total Disetor dari seluruh baris di tabel input. */
+        function updateRingkasan() {
+            const rows = document.querySelectorAll('#groupInputTableBody tr[data-name]');
+            let totalIWB = 0, totalSS = 0;
+            rows.forEach(tr => {
+                totalIWB += unformatRupiah(tr.querySelector('.iwb-input').value);
+                totalSS += unformatRupiah(tr.querySelector('.ss-input').value);
+            });
+            const hakGroup = Math.round(totalIWB * 0.25);
+            const iwbDisetor = totalIWB - hakGroup;
+            const ssDisetor = totalSS;
+            const totalDisetor = iwbDisetor + ssDisetor;
+            const elHak = document.getElementById('ringkasanHakGroup');
+            const elIwb = document.getElementById('ringkasanIwbDisetor');
+            const elSs = document.getElementById('ringkasanSsDisetor');
+            const elTotal = document.getElementById('ringkasanTotalDisetor');
+            if (elHak) elHak.textContent = fmtRp(hakGroup);
+            if (elIwb) elIwb.textContent = fmtRp(iwbDisetor);
+            if (elSs) elSs.textContent = fmtRp(ssDisetor);
+            if (elTotal) elTotal.textContent = fmtRp(totalDisetor);
         }
         function currentMonthStr() {
             const d = new Date();
@@ -483,7 +554,7 @@
         // ---------- GROUP: BULK INPUT ----------
         async function loadGroupTable() {
             const tbody = document.getElementById('groupInputTableBody');
-            tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=getGroupMembers&group=${encodeURIComponent(currentGroup)}`);
                 const json = await res.json();
@@ -491,14 +562,16 @@
                     tbody.innerHTML = json.data.map(m => `
                         <tr class="border-t border-gray-100" data-name="${m.name}">
                             <td class="p-2 font-bold">${m.name}</td>
-                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this)" class="w-full border rounded-lg p-1.5 text-sm itb-input text-right" placeholder="0"></td>
-                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this)" class="w-full border rounded-lg p-1.5 text-sm iwb-input text-right" placeholder="0"></td>
-                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this)" class="w-full border rounded-lg p-1.5 text-sm ss-input text-right" placeholder="0"></td>
+                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); hitungOtomatisRow(this)" class="w-full border rounded-lg p-1.5 text-sm income-input text-right" placeholder="0"></td>
+                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); updateRingkasan()" class="w-full border rounded-lg p-1.5 text-sm itb-input text-right" placeholder="0"></td>
+                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); updateRingkasan()" class="w-full border rounded-lg p-1.5 text-sm iwb-input text-right" placeholder="0"></td>
+                            <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); updateRingkasan()" class="w-full border rounded-lg p-1.5 text-sm ss-input text-right" placeholder="0"></td>
                         </tr>
-                    `).join('') || '<tr><td colspan="4" class="p-3 text-center text-xs text-gray-400">Belum ada anggota di kelompok ini</td></tr>';
+                    `).join('') || '<tr><td colspan="5" class="p-3 text-center text-xs text-gray-400">Belum ada anggota di kelompok ini</td></tr>';
+                    updateRingkasan();
                 }
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
             }
         }
 
@@ -519,11 +592,12 @@
             const entries = [];
             rows.forEach(tr => {
                 const name = tr.dataset.name;
+                const income = unformatRupiah(tr.querySelector('.income-input').value);
                 const itb = unformatRupiah(tr.querySelector('.itb-input').value);
                 const iwb = unformatRupiah(tr.querySelector('.iwb-input').value);
                 const ss = unformatRupiah(tr.querySelector('.ss-input').value);
                 if (itb > 0 || iwb > 0 || ss > 0) {
-                    entries.push({ name, ITB: itb, IWB: iwb, SS: ss });
+                    entries.push({ name, income, ITB: itb, IWB: iwb, SS: ss });
                 }
             });
             if (entries.length === 0) {
@@ -553,6 +627,7 @@
             document.getElementById('draftTableBody').innerHTML = draftEntries.map(e => `
                 <tr class="border-t border-gray-100">
                     <td class="p-2 font-bold">${e.name}</td>
+                    <td class="p-2 text-right">${fmtRp(e.income)}</td>
                     <td class="p-2 text-right">${fmtRp(e.ITB)}</td>
                     <td class="p-2 text-right">${fmtRp(e.IWB)}</td>
                     <td class="p-2 text-right">${fmtRp(e.SS)}</td>
@@ -975,7 +1050,14 @@
                     }
                 }
             });
+            const statEl = document.getElementById('statTidakWajib');
+            if (statEl) statEl.textContent = (m.notWajibCount || 0) + ' orang';
             renderMonthlyTable();
+        }
+
+        function showTidakWajibList() {
+            if (!dashboardData || !dashboardData.monthly) return;
+            openGroupListModal('Anggota Tidak Wajib (Penghasilan < Rp 3.500.000) Bulan Ini', dashboardData.monthly.notWajibList || []);
         }
 
         function setSortCol(col) {
@@ -1236,7 +1318,7 @@
             return `
                 <div class="bg-gray-50 rounded-xl border border-gray-100 p-3" id="setoran-row-${uid}">
                     <div class="flex justify-between items-center text-sm">
-                        <div><span class="font-bold">${r.name}</span> <span class="text-xs text-gray-500">(${r.group})</span> — ${r.type} · ${r.period}</div>
+                        <div><span class="font-bold">${r.name}</span> <span class="text-xs text-gray-500">(${r.group})</span> — ${r.type} · ${r.period} · Penghasilan: ${fmtRp(r.income)}</div>
                         <div class="flex items-center gap-3">
                             <span class="font-bold text-primary">${fmtRp(r.amount)}</span>
                             <button onclick="toggleEditSetoran('${r.year}', ${r.row})" class="text-xs text-blue-600 font-bold">Edit</button>
@@ -1250,7 +1332,14 @@
                             <option value="IWB" ${r.type === 'IWB' ? 'selected' : ''}>IWB</option>
                             <option value="SS" ${r.type === 'SS' ? 'selected' : ''}>SS</option>
                         </select>
-                        <input type="text" inputmode="numeric" oninput="formatRupiahField(this)" id="edit-amount-${uid}" value="${Number(r.amount).toLocaleString('id-ID')}" class="border rounded-lg p-1.5 text-xs w-28 text-right">
+                        <div>
+                            <label class="block text-[10px] text-gray-400">Jumlah</label>
+                            <input type="text" inputmode="numeric" oninput="formatRupiahField(this)" id="edit-amount-${uid}" value="${Number(r.amount).toLocaleString('id-ID')}" class="border rounded-lg p-1.5 text-xs w-28 text-right">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400">Penghasilan</label>
+                            <input type="text" inputmode="numeric" oninput="formatRupiahField(this)" id="edit-income-${uid}" value="${Number(r.income || 0).toLocaleString('id-ID')}" class="border rounded-lg p-1.5 text-xs w-28 text-right">
+                        </div>
                         <input type="month" id="edit-period-${uid}" value="${r.period}" class="border rounded-lg p-1.5 text-xs">
                         <button onclick="saveEditSetoran('${r.year}', ${r.row})" class="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg">Simpan</button>
                     </div>
@@ -1267,9 +1356,10 @@
             const name = document.getElementById('edit-name-' + uid).value;
             const type = document.getElementById('edit-type-' + uid).value;
             const amount = unformatRupiah(document.getElementById('edit-amount-' + uid).value);
+            const income = unformatRupiah(document.getElementById('edit-income-' + uid).value);
             const period = document.getElementById('edit-period-' + uid).value;
             try {
-                const url = `${APPS_SCRIPT_URL}?action=updateSetoran&year=${encodeURIComponent(year)}&row=${row}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&amount=${encodeURIComponent(amount)}&period=${encodeURIComponent(period)}`;
+                const url = `${APPS_SCRIPT_URL}?action=updateSetoran&year=${encodeURIComponent(year)}&row=${row}&name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}&amount=${encodeURIComponent(amount)}&period=${encodeURIComponent(period)}&income=${encodeURIComponent(income)}`;
                 const res = await fetch(url);
                 const json = await res.json();
                 if (json.success) {
