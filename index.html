@@ -44,6 +44,23 @@
             <section id="tabGroupInput" class="hidden">
                 <h3 class="font-bold mb-3">Input Setoran Kelompok <span id="groupNameLabel" class="text-primary"></span></h3>
 
+                <div id="donasiNTTCard" class="hidden border-2 border-amber-300 bg-amber-50 rounded-2xl p-4 mb-5">
+                    <p class="font-bold text-sm text-amber-800">Laporan Penggalangan Donasi NTT <span class="font-normal text-xs">(Maksimal 6 September 2026)</span></p>
+                    <p class="text-xs text-gray-600 mt-2">Transfer ke Rek: <span class="font-bold">Bank Muamalat 329 002 4828</span> a.n <span class="font-bold">DPD PKS Kota Bekasi</span></p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Nominal Donasi</label>
+                            <input type="text" inputmode="numeric" oninput="formatRupiahField(this)" id="donasiNominal" placeholder="0" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Tanggal Transfer</label>
+                            <input type="date" id="donasiTanggal" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                    </div>
+                    <button onclick="submitDonasiNTT()" id="donasiSubmitBtn" class="w-full mt-3 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-bold text-sm">Submit Laporan</button>
+                    <p id="donasiMsg" class="text-xs text-center mt-2 hidden"></p>
+                </div>
+
                 <div id="groupInputFormWrap">
                     <div class="mb-3">
                         <label class="block text-xs font-bold text-gray-500 mb-1">Bulan Setoran</label>
@@ -554,7 +571,59 @@
         }
 
         // ---------- GROUP: BULK INPUT ----------
+        // ---------- MENU SEMENTARA: Laporan Penggalangan Donasi NTT (s.d. 6 Sept 2026) ----------
+        const DONASI_NTT_DEADLINE = new Date('2026-09-06T23:59:59');
+
+        function checkDonasiNTTVisibility() {
+            const card = document.getElementById('donasiNTTCard');
+            if (!card) return;
+            if (new Date() <= DONASI_NTT_DEADLINE) {
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
+            }
+        }
+
+        async function submitDonasiNTT() {
+            const nominal = unformatRupiah(document.getElementById('donasiNominal').value);
+            const tanggal = document.getElementById('donasiTanggal').value;
+            const msg = document.getElementById('donasiMsg');
+            msg.classList.add('hidden');
+            if (!nominal || nominal <= 0 || !tanggal) {
+                msg.textContent = 'Isi Nominal Donasi dan Tanggal Transfer terlebih dahulu.';
+                msg.className = 'text-xs text-center mt-2 text-red-600';
+                msg.classList.remove('hidden');
+                return;
+            }
+            const btn = document.getElementById('donasiSubmitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Menyimpan...';
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=submitDonasiNTT&group=${encodeURIComponent(currentGroup)}&nominal=${encodeURIComponent(nominal)}&tanggal=${encodeURIComponent(tanggal)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.success) {
+                    msg.textContent = 'Laporan donasi berhasil disimpan. Terima kasih!';
+                    msg.className = 'text-xs text-center mt-2 text-green-600';
+                    document.getElementById('donasiNominal').value = '';
+                    document.getElementById('donasiTanggal').value = '';
+                } else {
+                    msg.textContent = 'Gagal: ' + json.error;
+                    msg.className = 'text-xs text-center mt-2 text-red-600';
+                }
+                msg.classList.remove('hidden');
+            } catch (err) {
+                msg.textContent = 'Terjadi kesalahan koneksi: ' + err.message;
+                msg.className = 'text-xs text-center mt-2 text-red-600';
+                msg.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Submit Laporan';
+            }
+        }
+
         async function loadGroupTable() {
+            checkDonasiNTTVisibility();
             const tbody = document.getElementById('groupInputTableBody');
             tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
             try {
