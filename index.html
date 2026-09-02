@@ -436,11 +436,41 @@
             <section id="tabKasNonIwb" class="hidden">
                 <h3 class="font-bold mb-3">Kas Non IWB</h3>
                 <div class="flex gap-2 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
-                    <button id="kasNonIwbTabBtn-rk" onclick="switchKasTab('NonIwb','rk')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Rekening Koran DPC Non IWB</button>
-                    <button id="kasNonIwbTabBtn-pengeluaran" onclick="switchKasTab('NonIwb','pengeluaran')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Pengeluaran Non IWB</button>
+                    <button id="kasNonIwbTabBtn-rk" onclick="switchKasTab('NonIwb','rk')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Rekening Koran Non-IWB</button>
+                    <button id="kasNonIwbTabBtn-pengeluaran" onclick="switchKasTab('NonIwb','pengeluaran')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Catatan Pengeluaran Non-IWB</button>
                 </div>
                 <div id="kasNonIwbPane-rk"></div>
                 <div id="kasNonIwbPane-pengeluaran" class="hidden"></div>
+            </section>
+
+            <!-- ===== PESAN UNTUK ADMIN (bendahara/kelompok) ===== -->
+            <section id="tabPesanAdmin" class="hidden">
+                <h3 class="font-bold mb-3">Pesan untuk Admin</h3>
+                <div class="bg-gray-50 border border-gray-100 rounded-2xl p-4 max-w-md">
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Isi Pesan (maksimal 20 karakter)</label>
+                    <input type="text" id="pesanAdminInput" maxlength="20" placeholder="Tulis pesan singkat..." class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                    <p class="text-xs text-gray-400 mt-1"><span id="pesanAdminCount">0</span>/20 karakter</p>
+                    <button onclick="kirimPesanAdmin()" class="w-full mt-2 bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Kirim</button>
+                    <p id="pesanAdminMsg" class="text-xs text-center mt-2 hidden"></p>
+                </div>
+            </section>
+
+            <!-- ===== PESAN BENDUM GROUP (admin) ===== -->
+            <section id="tabPesanBendum" class="hidden">
+                <h3 class="font-bold mb-3">Pesan Bendum Group</h3>
+                <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="text-left p-2 font-bold w-10">No</th>
+                                <th class="text-left p-2 font-bold">Pengirim</th>
+                                <th class="text-left p-2 font-bold">Waktu Kirim</th>
+                                <th class="text-left p-2 font-bold">Isi Pesan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pesanBendumBody"></tbody>
+                    </table>
+                </div>
             </section>
 
             </main>
@@ -614,6 +644,14 @@
                 document.getElementById('downloadReportBtn').classList.remove('hidden');
             }
             nav.innerHTML = items.map(it => `<button onclick="showTab('${it.tab}')" id="btn-${it.tab}" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors">${it.label}</button>`).join('');
+
+            if (currentRole === 'group') {
+                nav.innerHTML += `<div class="border-t border-gray-200 my-2"></div><button onclick="showTab('pesanAdmin')" id="btn-pesanAdmin" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors">Pesan untuk Admin</button>`;
+            }
+            if (currentRole === 'admin') {
+                nav.innerHTML += `<div class="border-t border-gray-200 my-2"></div><button onclick="showTab('pesanBendum')" id="btn-pesanBendum" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors">Pesan Bendum Group</button>`;
+            }
+
             showTab(items[0].tab);
         }
 
@@ -621,7 +659,7 @@
 
         function showTab(tab) {
             currentTab = tab;
-            ['groupInput', 'dashboard', 'kelolaSetoran', 'kelolaAnggota', 'donasiNtt', 'kasIwb', 'kasNonIwb'].forEach(t => {
+            ['groupInput', 'dashboard', 'kelolaSetoran', 'kelolaAnggota', 'donasiNtt', 'kasIwb', 'kasNonIwb', 'pesanAdmin', 'pesanBendum'].forEach(t => {
                 const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 if (el) el.classList.toggle('hidden', t !== tab);
                 const btn = document.getElementById('btn-' + t);
@@ -644,6 +682,7 @@
             if (tab === 'donasiNtt') { loadDonasiNTTDashboard(); }
             if (tab === 'kasIwb') { switchKasTab('Iwb', 'rk'); }
             if (tab === 'kasNonIwb') { switchKasTab('NonIwb', 'rk'); }
+            if (tab === 'pesanBendum') { loadPesanBendum(); }
         }
 
         /** Dipanggil dari tombol "Refresh" di header - muat ulang data halaman yang sedang aktif saja. */
@@ -658,6 +697,7 @@
             if (currentTab === 'donasiNtt') { loadDonasiNTTDashboard(); return; }
             if (currentTab === 'kasIwb') { refreshKasTab('Iwb'); return; }
             if (currentTab === 'kasNonIwb') { refreshKasTab('NonIwb'); return; }
+            if (currentTab === 'pesanBendum') { loadPesanBendum(); return; }
         }
 
         async function loadMonthsInto(selectId, includeAll) {
@@ -1688,6 +1728,67 @@
         }
 
         // ---------- ADMIN: KELOLA ANGGOTA ----------
+        // =====================================================================
+        // PESAN BENDAHARA <-> ADMIN
+        // =====================================================================
+        document.addEventListener('input', function (e) {
+            if (e.target && e.target.id === 'pesanAdminInput') {
+                document.getElementById('pesanAdminCount').textContent = e.target.value.length;
+            }
+        });
+
+        async function kirimPesanAdmin() {
+            const inputEl = document.getElementById('pesanAdminInput');
+            const msgEl = document.getElementById('pesanAdminMsg');
+            const isi = inputEl.value.trim();
+            msgEl.classList.add('hidden');
+            if (!isi) {
+                msgEl.textContent = 'Isi pesan terlebih dahulu.';
+                msgEl.className = 'text-xs text-center mt-2 text-red-600';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=sendPesanAdmin&group=${encodeURIComponent(currentGroup)}&isi=${encodeURIComponent(isi)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.success) {
+                    msgEl.textContent = 'Pesan terkirim ke admin.';
+                    msgEl.className = 'text-xs text-center mt-2 text-green-600';
+                    inputEl.value = '';
+                    document.getElementById('pesanAdminCount').textContent = '0';
+                } else {
+                    msgEl.textContent = 'Gagal: ' + json.error;
+                    msgEl.className = 'text-xs text-center mt-2 text-red-600';
+                }
+                msgEl.classList.remove('hidden');
+            } catch (err) {
+                msgEl.textContent = 'Terjadi kesalahan koneksi: ' + err.message;
+                msgEl.className = 'text-xs text-center mt-2 text-red-600';
+                msgEl.classList.remove('hidden');
+            }
+        }
+
+        async function loadPesanBendum() {
+            const body = document.getElementById('pesanBendumBody');
+            body.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=listPesanAdmin`);
+                const json = await res.json();
+                const data = json.success ? json.data : [];
+                body.innerHTML = data.map((p, i) => `
+                    <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                        <td class="p-2 text-gray-400">${i + 1}</td>
+                        <td class="p-2 font-bold">${p.pengirim}</td>
+                        <td class="p-2 text-xs text-gray-500">${p.waktuKirim}</td>
+                        <td class="p-2">${p.isiPesan}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="4" class="p-4 text-center text-xs text-gray-400">Belum ada pesan masuk</td></tr>';
+            } catch (err) {
+                body.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
+            }
+        }
+
         async function loadMemberList() {
             const wrap = document.getElementById('memberListWrap');
             wrap.innerHTML = '<p class="text-xs text-gray-400 text-center">Memuat...</p>';
@@ -1781,6 +1882,7 @@
         // KAS IWB / KAS NON IWB: Rekening Koran (upload PDF) + Catatan Pengeluaran
         // =====================================================================
         let kasRkRows = { Iwb: [], NonIwb: [] };
+        let kasPendingHashes = { Iwb: [], NonIwb: [] };
 
         function actionSuffixFor(variant) { return variant === 'Iwb' ? 'IWB' : 'NonIWB'; }
         /** wabendum boleh edit Kas IWB; admin boleh edit Kas Non IWB; selain itu (termasuk admin lihat IWB, atau BPH) read-only. */
@@ -1820,18 +1922,11 @@
             renderKasRkTable(variant);
         }
 
-        /** Ubah "02 Mar 2026 19:25" jadi "2026-03-02" untuk disimpan sebagai tanggal transaksi pengeluaran. */
-        function tanggalRkKeISO(str) {
-            const BULAN_EN = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', Mei: '05', May: '05', Jun: '06', Jul: '07', Agu: '08', Aug: '08', Sep: '09', Okt: '10', Oct: '10', Nov: '11', Des: '12', Dec: '12' };
-            const m = String(str || '').match(/(\d{2})\s+(\w{3})\s+(\d{4})/);
-            if (!m) return '';
-            return `${m[3]}-${BULAN_EN[m[2]] || '01'}-${m[1]}`;
-        }
-
         function renderKasRkTable(variant) {
             const pane = document.getElementById('kas' + variant + 'Pane-rk');
             const rows = kasRkRows[variant] || [];
             const readOnly = isKasReadOnly(variant);
+            const isAdmin = currentRole === 'admin';
             const saldoAkhir = rows.length ? rows[rows.length - 1].saldo : 0;
             const saldoHtml = `
                 <div class="bg-primary/10 border border-primary/30 rounded-xl p-3 mb-4">
@@ -1844,10 +1939,20 @@
                     <label class="block text-xs font-bold text-gray-500 mb-2">Upload PDF Rekening Koran Bank BSI</label>
                     <input type="file" accept="application/pdf" id="kasPdfInput-${variant}" class="text-xs mb-2">
                     <button onclick="prosesPdfRekeningKoran('${variant}')" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">Proses PDF</button>
-                    <p class="text-xs text-gray-400 mt-2">Hasil ekstraksi otomatis dari PDF bisa tidak 100% akurat &mdash; periksa & koreksi tiap baris sebelum klik Simpan. Berkas yang sama tidak bisa diupload dua kali.</p>
+                    <p class="text-xs text-gray-400 mt-2">Hasil ekstraksi otomatis dari PDF bisa tidak 100% akurat &mdash; periksa & koreksi tiap baris sebelum klik Simpan. Berkas yang sama tidak bisa disimpan dua kali.</p>
                     <p id="kasPdfMsg-${variant}" class="text-xs mt-2 hidden"></p>
                 </div>
             `;
+            const adminDeleteHtml = isAdmin ? `
+                <div class="bg-red-50 border border-red-100 rounded-xl p-4 mb-4">
+                    <p class="font-bold text-sm text-red-700 mb-2">Hapus Data per Bulan</p>
+                    <div class="flex flex-wrap gap-2 items-end">
+                        <input type="month" id="kasDeleteMonth-${variant}" class="border rounded-lg p-2 text-sm">
+                        <button onclick="hapusKasRkByMonth('${variant}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm">DELETE</button>
+                    </div>
+                    <p id="kasDeleteMsg-${variant}" class="text-xs mt-2 hidden"></p>
+                </div>
+            ` : '';
             const tableRows = rows.map((r, i) => readOnly ? `
                 <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
                     <td class="p-1.5 text-gray-400">${i + 1}</td>
@@ -1867,17 +1972,13 @@
                     <td class="p-1"><input class="border rounded p-1 text-xs w-24 text-right" value="${r.kredit || 0}" onchange="updateKasRkCell('${variant}',${i},'kredit',this.value)"></td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-24 text-right" value="${r.saldo || 0}" onchange="updateKasRkCell('${variant}',${i},'saldo',this.value)"></td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-full min-w-[120px]" value="${String(r.keterangan || '').replace(/"/g, '&quot;')}" onchange="updateKasRkCell('${variant}',${i},'keterangan',this.value)" placeholder="Keterangan..."></td>
-                    <td class="p-1 text-center">
-                        ${r.confirmed
-                    ? `<span class="px-2 py-1 rounded-lg text-xs font-bold bg-green-500 text-white whitespace-nowrap">CONFIRMED</span>`
-                    : `<button onclick="confirmPengeluaranRow('${variant}',${i})" class="px-2 py-1 rounded-lg text-xs font-bold bg-red-500 text-white whitespace-nowrap hover:bg-red-600">CONFIRM</button>`}
-                    </td>
                     <td class="p-1"><button onclick="hapusKasRkRow('${variant}',${i})" class="text-red-500 text-xs font-bold px-1">&times;</button></td>
                 </tr>
             `).join('');
             pane.innerHTML = `
                 ${saldoHtml}
                 ${uploadHtml}
+                ${adminDeleteHtml}
                 <div class="overflow-x-auto border border-gray-100 rounded-xl">
                     <table class="w-full text-xs">
                         <thead class="bg-gray-50">
@@ -1889,36 +1990,44 @@
                                 <th class="text-right p-2 font-bold">Kredit</th>
                                 <th class="text-right p-2 font-bold">Saldo</th>
                                 <th class="text-left p-2 font-bold">Keterangan</th>
-                                ${readOnly ? '' : '<th class="text-center p-2 font-bold">Laporan Pengeluaran</th><th></th>'}
+                                ${readOnly ? '' : '<th></th>'}
                             </tr>
                         </thead>
-                        <tbody>${tableRows || `<tr><td colspan="${readOnly ? 7 : 9}" class="p-4 text-center text-gray-400">Belum ada data</td></tr>`}</tbody>
+                        <tbody>${tableRows || `<tr><td colspan="${readOnly ? 7 : 8}" class="p-4 text-center text-gray-400">Belum ada data</td></tr>`}</tbody>
                     </table>
                 </div>
                 ${readOnly ? '' : `<button onclick="simpanKasRk('${variant}')" class="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold">Simpan</button><p id="kasRkSaveMsg-${variant}" class="text-xs text-center mt-2 hidden"></p>`}
             `;
         }
 
-        async function confirmPengeluaranRow(variant, idx) {
-            const row = kasRkRows[variant][idx];
-            if (row.confirmed) return;
-            const amount = row.debit > 0 ? row.debit : row.kredit;
-            if (!amount || amount <= 0) { alert('Tidak ada jumlah pada baris ini untuk dilaporkan sebagai pengeluaran.'); return; }
-            const nama = row.uraian || ('Transaksi ' + row.tanggal);
-            const tanggalISO = tanggalRkKeISO(row.tanggal) || new Date().toISOString().slice(0, 10);
+        async function hapusKasRkByMonth(variant) {
+            const monthEl = document.getElementById('kasDeleteMonth-' + variant);
+            const msgEl = document.getElementById('kasDeleteMsg-' + variant);
+            const yearMonth = monthEl.value;
+            if (!yearMonth) {
+                msgEl.textContent = 'Pilih bulan terlebih dahulu.';
+                msgEl.className = 'text-xs mt-2 text-red-600';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+            if (!confirm(`Hapus semua data Rekening Koran bulan ${yearMonth}? Tindakan ini tidak bisa dibatalkan.`)) return;
             try {
-                const url = `${APPS_SCRIPT_URL}?action=addPengeluaran${actionSuffixFor(variant)}&nama=${encodeURIComponent(nama)}&nominal=${encodeURIComponent(amount)}&tanggal=${encodeURIComponent(tanggalISO)}`;
-                const res = await fetch(url);
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=deleteRekeningKoranByMonth${actionSuffixFor(variant)}&yearMonth=${encodeURIComponent(yearMonth)}`);
                 const json = await res.json();
                 if (json.success) {
-                    row.confirmed = true;
-                    renderKasRkTable(variant);
-                    await simpanKasRk(variant, true);
+                    msgEl.textContent = `Berhasil menghapus ${json.deleted} baris data bulan ${yearMonth}.`;
+                    msgEl.className = 'text-xs mt-2 text-green-600';
+                    msgEl.classList.remove('hidden');
+                    renderKasRekeningKoran(variant);
                 } else {
-                    alert('Gagal mencatat ke Pengeluaran: ' + json.error);
+                    msgEl.textContent = 'Gagal: ' + json.error;
+                    msgEl.className = 'text-xs mt-2 text-red-600';
+                    msgEl.classList.remove('hidden');
                 }
             } catch (err) {
-                alert('Terjadi kesalahan koneksi: ' + err.message);
+                msgEl.textContent = 'Terjadi kesalahan koneksi: ' + err.message;
+                msgEl.className = 'text-xs mt-2 text-red-600';
+                msgEl.classList.remove('hidden');
             }
         }
 
@@ -1932,18 +2041,31 @@
             renderKasRkTable(variant);
         }
 
-        async function simpanKasRk(variant, silent) {
+        async function simpanKasRk(variant) {
             const msgEl = document.getElementById('kasRkSaveMsg-' + variant);
+            msgEl.classList.add('hidden');
+            const pending = kasPendingHashes[variant] || [];
             try {
+                // Cek & daftarkan semua berkas yang baru diproses sejak load terakhir.
+                // Kalau salah satu ternyata berkas duplikat, batalkan seluruh proses Simpan (tidak ada data yang tertulis).
+                for (const hash of pending) {
+                    const cekRes = await fetch(`${APPS_SCRIPT_URL}?action=checkUploadHash&variant=${actionSuffixFor(variant)}&hash=${hash}`);
+                    const cekJson = await cekRes.json();
+                    if (!cekJson.success) {
+                        msgEl.textContent = (cekJson.error || 'Berkas sudah pernah di-upload') + ' Data batal disimpan, silakan periksa ulang berkas yang diupload.';
+                        msgEl.className = 'text-xs text-center mt-2 text-red-600 font-bold';
+                        msgEl.classList.remove('hidden');
+                        return;
+                    }
+                }
                 const url = `${APPS_SCRIPT_URL}?action=saveRekeningKoran${actionSuffixFor(variant)}&rows=${encodeURIComponent(JSON.stringify(kasRkRows[variant]))}`;
                 const res = await fetch(url);
                 const json = await res.json();
-                if (silent) return;
                 msgEl.textContent = json.success ? `Tersimpan (${json.count} baris transaksi).` : ('Gagal: ' + json.error);
                 msgEl.className = 'text-xs text-center mt-2 ' + (json.success ? 'text-green-600' : 'text-red-600');
                 msgEl.classList.remove('hidden');
+                if (json.success) kasPendingHashes[variant] = [];
             } catch (err) {
-                if (silent) return;
                 msgEl.textContent = 'Terjadi kesalahan koneksi: ' + err.message;
                 msgEl.className = 'text-xs text-center mt-2 text-red-600';
                 msgEl.classList.remove('hidden');
@@ -1965,23 +2087,14 @@
                 msgEl.classList.remove('hidden');
                 return;
             }
-            msgEl.textContent = 'Memeriksa berkas...';
+            msgEl.textContent = 'Memproses PDF...';
             msgEl.className = 'text-xs mt-2 text-gray-500';
             msgEl.classList.remove('hidden');
             try {
                 const file = fileInput.files[0];
                 const arrayBuffer = await file.arrayBuffer();
-
                 const hash = await hitungHashFile(arrayBuffer);
-                const cekRes = await fetch(`${APPS_SCRIPT_URL}?action=checkUploadHash&variant=${actionSuffixFor(variant)}&hash=${hash}`);
-                const cekJson = await cekRes.json();
-                if (!cekJson.success) {
-                    msgEl.textContent = cekJson.error || 'Berkas sudah pernah di-upload';
-                    msgEl.className = 'text-xs mt-2 text-red-600 font-bold';
-                    return;
-                }
 
-                msgEl.textContent = 'Memproses PDF...';
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 const parsed = await parseBsiRekeningKoranPdf(pdf);
                 if (!parsed.length) {
@@ -1990,8 +2103,9 @@
                     return;
                 }
                 kasRkRows[variant] = (kasRkRows[variant] || []).concat(parsed);
+                kasPendingHashes[variant] = (kasPendingHashes[variant] || []).concat([hash]);
                 renderKasRkTable(variant);
-                msgEl.textContent = `Berhasil mengekstrak ${parsed.length} baris transaksi. Periksa dulu sebelum klik Simpan (terutama Debit/Kredit, kalau ada yang meragukan).`;
+                msgEl.textContent = `Berhasil mengekstrak ${parsed.length} baris transaksi. Periksa dulu, baru klik Simpan untuk benar-benar menyimpan datanya (belum tersimpan sekarang).`;
                 msgEl.className = 'text-xs mt-2 text-green-600';
             } catch (err) {
                 msgEl.textContent = 'Gagal memproses PDF: ' + err.message;
