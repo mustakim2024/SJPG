@@ -36,7 +36,10 @@
 
     <div id="app" class="w-full max-w-[900px] mx-auto h-[100dvh] bg-white flex flex-col shadow-xl overflow-hidden relative">
         <header class="h-16 flex items-center justify-between px-4 border-b bg-white shrink-0 gap-2">
-            <h1 class="font-bold text-sm text-primary uppercase shrink-0">Sunduquna Juyubuna</h1>
+            <div class="min-w-0">
+                <h1 class="font-bold text-sm text-primary uppercase truncate">Sunduquna Juyubuna</h1>
+                <p id="currentUserLabel" class="text-xs text-gray-500 truncate"></p>
+            </div>
             <div class="flex items-center gap-2">
                 <button onclick="refreshCurrentTab()" class="shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs bg-green-100 text-green-700 hover:bg-green-200 whitespace-nowrap">Refresh</button>
                 <button onclick="logout()" class="shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 whitespace-nowrap">Keluar</button>
@@ -77,6 +80,7 @@
                         <table class="w-full text-sm">
                             <thead class="bg-gray-50">
                                 <tr>
+                                    <th class="text-left p-2 font-bold w-10">No</th>
                                     <th class="text-left p-2 font-bold">Nama</th>
                                     <th class="text-left p-2 font-bold w-28">Penghasilan</th>
                                     <th class="text-left p-2 font-bold w-24">ITB</th>
@@ -105,6 +109,7 @@
                         <table class="w-full text-sm">
                             <thead class="bg-gray-50">
                                 <tr>
+                                    <th class="text-left p-2 font-bold w-10">No</th>
                                     <th class="text-left p-2 font-bold">Nama</th>
                                     <th class="text-right p-2 font-bold">Penghasilan</th>
                                     <th class="text-right p-2 font-bold">ITB</th>
@@ -397,6 +402,7 @@
                         <table class="w-full text-sm">
                             <thead class="bg-gray-50">
                                 <tr>
+                                    <th class="text-left p-2 font-bold w-10">No</th>
                                     <th class="text-left p-2 font-bold">Kelompok</th>
                                     <th class="text-right p-2 font-bold">Nominal</th>
                                     <th class="text-center p-2 font-bold">Tgl Transfer</th>
@@ -440,6 +446,7 @@
 
         let currentRole = null;
         let currentGroup = null;
+        let currentUsername = null;
         let reportData = { individual: [], groupTotal: [] };
 
         function fmtRp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
@@ -549,6 +556,9 @@
                 if (json.success) {
                     currentRole = json.role;
                     currentGroup = json.group;
+                    currentUsername = u;
+                    const userLabelEl = document.getElementById('currentUserLabel');
+                    if (userLabelEl) userLabelEl.textContent = 'Login sebagai: ' + u;
                     document.getElementById('loginScreen').classList.add('hidden');
                     setupNav();
                 } else {
@@ -719,20 +729,21 @@
         async function loadGroupTable() {
             checkDonasiNTTVisibility();
             const tbody = document.getElementById('groupInputTableBody');
-            tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=getGroupMembers&group=${encodeURIComponent(currentGroup)}`);
                 const json = await res.json();
                 if (json.success) {
-                    tbody.innerHTML = json.data.map(m => `
+                    tbody.innerHTML = json.data.map((m, i) => `
                         <tr class="border-t border-gray-100" data-name="${m.name}">
+                            <td class="p-2 text-gray-400">${i + 1}</td>
                             <td class="p-2 font-bold">${m.name}</td>
                             <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); hitungOtomatisRow(this)" class="w-full border rounded-lg p-1.5 text-sm income-input text-right" placeholder="0"></td>
                             <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); updateRingkasan()" class="w-full border rounded-lg p-1.5 text-sm itb-input text-right" placeholder="0"></td>
                             <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); updateRingkasan()" class="w-full border rounded-lg p-1.5 text-sm iwb-input text-right" placeholder="0"></td>
                             <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); updateRingkasan()" class="w-full border rounded-lg p-1.5 text-sm ss-input text-right" placeholder="0"></td>
                         </tr>
-                    `).join('') || '<tr><td colspan="5" class="p-3 text-center text-xs text-gray-400">Belum ada anggota di kelompok ini</td></tr>';
+                    `).join('') || '<tr><td colspan="6" class="p-3 text-center text-xs text-gray-400">Belum ada anggota di kelompok ini</td></tr>';
                     updateRingkasan();
                 }
             } catch (err) {
@@ -789,8 +800,9 @@
 
         function renderDraft() {
             document.getElementById('draftPeriodLabel').textContent = periodLabelID(draftPeriod);
-            document.getElementById('draftTableBody').innerHTML = draftEntries.map(e => `
+            document.getElementById('draftTableBody').innerHTML = draftEntries.map((e, i) => `
                 <tr class="border-t border-gray-100">
+                    <td class="p-2 text-gray-400">${i + 1}</td>
                     <td class="p-2 font-bold">${e.name}</td>
                     <td class="p-2 text-right">${fmtRp(e.income)}</td>
                     <td class="p-2 text-right">${fmtRp(e.ITB)}</td>
@@ -963,6 +975,7 @@
                     <table class="w-full text-sm">
                         <thead class="bg-gray-50">
                             <tr>
+                                <th class="text-left p-2 font-bold w-10">No</th>
                                 <th class="text-left p-2 font-bold">Nama</th>
                                 <th class="text-right p-2 font-bold">ITB</th>
                                 <th class="text-right p-2 font-bold">IWB</th>
@@ -971,8 +984,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${individual.map(m => `
+                            ${individual.map((m, i) => `
                                 <tr class="border-t border-gray-100">
+                                    <td class="p-2 text-gray-400">${i + 1}</td>
                                     <td class="p-2 font-bold">${m.name}</td>
                                     <td class="p-2 text-right">${fmtRp(m.ITB)}</td>
                                     <td class="p-2 text-right">${fmtRp(m.IWB)}</td>
@@ -983,6 +997,7 @@
                         </tbody>
                         <tfoot>
                             <tr class="border-t-2 border-gray-200 bg-gray-50">
+                                <td class="p-2"></td>
                                 <td class="p-2 font-bold">Total Kelompok</td>
                                 <td class="p-2 text-right font-bold">${fmtRp(totalITB)}</td>
                                 <td class="p-2 text-right font-bold">${fmtRp(totalIWB)}</td>
@@ -1308,7 +1323,7 @@
         let donasiDashboardData = null;
 
         async function loadDonasiNTTDashboard() {
-            document.getElementById('donasiEntriesBody').innerHTML = '<tr><td colspan="4" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
+            document.getElementById('donasiEntriesBody').innerHTML = '<tr><td colspan="5" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=getDonasiNTTDashboard`);
                 const json = await res.json();
@@ -1322,16 +1337,17 @@
                 document.getElementById('donasiKelompokSudah').textContent = d.kelompokSudah + ' / ' + d.totalKelompok;
                 document.getElementById('donasiKelompokBelum').textContent = d.kelompokBelum;
 
-                document.getElementById('donasiEntriesBody').innerHTML = d.entries.map(e => `
+                document.getElementById('donasiEntriesBody').innerHTML = d.entries.map((e, i) => `
                     <tr class="border-t border-gray-100">
+                        <td class="p-2 text-gray-400">${i + 1}</td>
                         <td class="p-2 font-bold">${e.group}</td>
                         <td class="p-2 text-right">${fmtRp(e.nominal)}</td>
                         <td class="p-2 text-center">${e.tanggalTransfer}</td>
                         <td class="p-2 text-center text-xs text-gray-500">${e.timestamp}</td>
                     </tr>
-                `).join('') || '<tr><td colspan="4" class="p-4 text-center text-xs text-gray-400">Belum ada laporan masuk</td></tr>';
+                `).join('') || '<tr><td colspan="5" class="p-4 text-center text-xs text-gray-400">Belum ada laporan masuk</td></tr>';
             } catch (err) {
-                document.getElementById('donasiEntriesBody').innerHTML = `<tr><td colspan="4" class="p-4 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
+                document.getElementById('donasiEntriesBody').innerHTML = `<tr><td colspan="5" class="p-4 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
             }
         }
 
@@ -1727,6 +1743,7 @@
             `;
             const tableRows = rows.map((r, i) => readOnly ? `
                 <tr class="border-t border-gray-100">
+                    <td class="p-1.5 text-gray-400">${i + 1}</td>
                     <td class="p-1.5">${r.tanggal}</td>
                     <td class="p-1.5">${r.uraian}</td>
                     <td class="p-1.5 text-right">${fmtRp(r.debit)}</td>
@@ -1736,6 +1753,7 @@
                 </tr>
             ` : `
                 <tr class="border-t border-gray-100">
+                    <td class="p-1.5 text-gray-400">${i + 1}</td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-24" value="${r.tanggal || ''}" onchange="updateKasRkCell('${variant}',${i},'tanggal',this.value)"></td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-full min-w-[140px]" value="${String(r.uraian || '').replace(/"/g, '&quot;')}" onchange="updateKasRkCell('${variant}',${i},'uraian',this.value)"></td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-24 text-right" value="${r.debit || 0}" onchange="updateKasRkCell('${variant}',${i},'debit',this.value)"></td>
@@ -1751,6 +1769,7 @@
                     <table class="w-full text-xs">
                         <thead class="bg-gray-50">
                             <tr>
+                                <th class="text-left p-2 font-bold w-8">No</th>
                                 <th class="text-left p-2 font-bold">Tanggal</th>
                                 <th class="text-left p-2 font-bold">Uraian</th>
                                 <th class="text-right p-2 font-bold">Debit</th>
@@ -1760,7 +1779,7 @@
                                 ${readOnly ? '' : '<th></th>'}
                             </tr>
                         </thead>
-                        <tbody>${tableRows || `<tr><td colspan="7" class="p-4 text-center text-gray-400">Belum ada data</td></tr>`}</tbody>
+                        <tbody>${tableRows || `<tr><td colspan="8" class="p-4 text-center text-gray-400">Belum ada data</td></tr>`}</tbody>
                     </table>
                 </div>
                 ${readOnly ? '' : `<button onclick="simpanKasRk('${variant}')" class="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold">Simpan</button><p id="kasRkSaveMsg-${variant}" class="text-xs text-center mt-2 hidden"></p>`}
@@ -1938,9 +1957,9 @@
                     <p id="pengeluaran${variant}Msg" class="text-xs mb-2 hidden"></p>
                 `;
                 const total = data.reduce((s, r) => s + r.nominal, 0);
-                const rowsHtml = data.map(r => `
+                const rowsHtml = data.map((r, i) => `
                     <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 flex justify-between items-center text-sm">
-                        <div><span class="font-bold">${r.nama}</span> <span class="text-xs text-gray-400">(${r.tanggal})</span></div>
+                        <div><span class="text-gray-400 mr-2">${i + 1}.</span><span class="font-bold">${r.nama}</span> <span class="text-xs text-gray-400">(${r.tanggal})</span></div>
                         <div class="flex items-center gap-3">
                             <span class="font-bold text-primary">${fmtRp(r.nominal)}</span>
                             ${readOnly ? '' : `<button onclick="hapusPengeluaran('${variant}',${r.row})" class="text-xs text-red-600 font-bold">Hapus</button>`}
