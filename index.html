@@ -35,12 +35,12 @@
     </div>
 
     <div id="app" class="w-full max-w-[900px] mx-auto h-[100dvh] bg-white flex flex-col shadow-xl overflow-hidden relative">
-        <header class="h-16 flex items-center justify-between px-4 border-b bg-white shrink-0 gap-2">
-            <div class="min-w-0">
-                <h1 class="font-bold text-sm text-primary uppercase truncate">Sunduquna Juyubuna</h1>
-                <p id="currentUserLabel" class="text-xs text-gray-500 truncate"></p>
+        <header class="h-16 flex items-center justify-between px-3 border-b bg-white shrink-0 gap-2">
+            <h1 class="font-bold text-sm text-primary uppercase truncate shrink-0">Sunduquna Juyubuna</h1>
+            <div class="flex-1 flex justify-center min-w-0 px-2">
+                <span id="currentUserLabel" class="font-bold text-sm uppercase border-2 border-primary text-primary rounded-lg px-3 py-1.5 truncate max-w-full"></span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 shrink-0">
                 <button onclick="refreshCurrentTab()" class="shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs bg-green-100 text-green-700 hover:bg-green-200 whitespace-nowrap">Refresh</button>
                 <button onclick="logout()" class="shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 whitespace-nowrap">Keluar</button>
             </div>
@@ -379,19 +379,19 @@
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                     <div class="border border-gray-100 rounded-2xl p-3 shadow-sm bg-white">
-                        <p class="text-xs text-gray-400">Total Terkumpul</p>
+                        <p class="text-xs text-gray-400">Total Donasi Masuk</p>
                         <p class="font-bold text-lg text-primary" id="donasiTotalTerkumpul">Rp 0</p>
                     </div>
                     <div class="border border-gray-100 rounded-2xl p-3 shadow-sm bg-white">
-                        <p class="text-xs text-gray-400">Jumlah Laporan</p>
-                        <p class="font-bold text-lg text-gray-700" id="donasiJumlahLaporan">0</p>
+                        <p class="text-xs text-gray-400">Total Group</p>
+                        <p class="font-bold text-lg text-gray-700" id="donasiTotalGroup">0</p>
                     </div>
-                    <div class="border border-gray-100 rounded-2xl p-3 shadow-sm bg-white cursor-pointer" onclick="openGroupListModal('Kelompok Sudah Submit Donasi', (donasiDashboardData && donasiDashboardData.groupsSudahList) || [])">
-                        <p class="text-xs text-gray-400">Kelompok Sudah Submit</p>
+                    <div class="border border-gray-100 rounded-2xl p-3 shadow-sm bg-white cursor-pointer" onclick="openGroupListModal('Group Sudah Setor Donasi', (donasiDashboardData && donasiDashboardData.groupsSudahList) || [])">
+                        <p class="text-xs text-gray-400">Group Sudah Setor</p>
                         <p class="font-bold text-lg text-green-600" id="donasiKelompokSudah">0</p>
                     </div>
-                    <div class="border border-gray-100 rounded-2xl p-3 shadow-sm bg-white cursor-pointer" onclick="openGroupListModal('Kelompok Belum Submit Donasi', (donasiDashboardData && donasiDashboardData.groupsBelumList) || [])">
-                        <p class="text-xs text-gray-400">Kelompok Belum Submit</p>
+                    <div class="border border-gray-100 rounded-2xl p-3 shadow-sm bg-white cursor-pointer" onclick="openGroupListModal('Group Belum Setor Donasi', (donasiDashboardData && donasiDashboardData.groupsBelumList) || [])">
+                        <p class="text-xs text-gray-400">Group Belum Setor</p>
                         <p class="font-bold text-lg text-red-500" id="donasiKelompokBelum">0</p>
                     </div>
                 </div>
@@ -407,6 +407,7 @@
                                     <th class="text-right p-2 font-bold">Nominal</th>
                                     <th class="text-center p-2 font-bold">Tgl Transfer</th>
                                     <th class="text-center p-2 font-bold">Waktu Submit</th>
+                                    <th class="text-center p-2 font-bold" id="donasiAksiHeader"></th>
                                 </tr>
                             </thead>
                             <tbody id="donasiEntriesBody"></tbody>
@@ -558,7 +559,7 @@
                     currentGroup = json.group;
                     currentUsername = u;
                     const userLabelEl = document.getElementById('currentUserLabel');
-                    if (userLabelEl) userLabelEl.textContent = 'Login sebagai: ' + u;
+                    if (userLabelEl) userLabelEl.textContent = u;
                     document.getElementById('loginScreen').classList.add('hidden');
                     setupNav();
                 } else {
@@ -581,6 +582,7 @@
                     { tab: 'kelolaSetoran', label: 'Kelola Setoran' },
                     { tab: 'kelolaAnggota', label: 'Kelola Anggota' },
                     { tab: 'donasiNtt', label: 'Donasi NTT' },
+                    { tab: 'kasIwb', label: 'Laporan Kas IWB' },
                     { tab: 'kasNonIwb', label: 'Kas Non IWB' }
                 ];
             } else if (currentRole === 'bph') {
@@ -735,7 +737,7 @@
                 const json = await res.json();
                 if (json.success) {
                     tbody.innerHTML = json.data.map((m, i) => `
-                        <tr class="border-t border-gray-100" data-name="${m.name}">
+                        <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}" data-name="${m.name}">
                             <td class="p-2 text-gray-400">${i + 1}</td>
                             <td class="p-2 font-bold">${m.name}</td>
                             <td class="p-1"><input type="text" inputmode="numeric" oninput="formatRupiahField(this); hitungOtomatisRow(this)" class="w-full border rounded-lg p-1.5 text-sm income-input text-right" placeholder="0"></td>
@@ -801,7 +803,7 @@
         function renderDraft() {
             document.getElementById('draftPeriodLabel').textContent = periodLabelID(draftPeriod);
             document.getElementById('draftTableBody').innerHTML = draftEntries.map((e, i) => `
-                <tr class="border-t border-gray-100">
+                <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
                     <td class="p-2 text-gray-400">${i + 1}</td>
                     <td class="p-2 font-bold">${e.name}</td>
                     <td class="p-2 text-right">${fmtRp(e.income)}</td>
@@ -985,7 +987,7 @@
                         </thead>
                         <tbody>
                             ${individual.map((m, i) => `
-                                <tr class="border-t border-gray-100">
+                                <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
                                     <td class="p-2 text-gray-400">${i + 1}</td>
                                     <td class="p-2 font-bold">${m.name}</td>
                                     <td class="p-2 text-right">${fmtRp(m.ITB)}</td>
@@ -1279,7 +1281,7 @@
             };
 
             document.getElementById('adminGroupTableBody').innerHTML = pageRows.map((r, i) => `
-                <tr class="border-t border-gray-100 ${r.status === 'Lunas' ? 'bg-green-50/50' : 'bg-red-50/50'}">
+                <tr class="border-t border-gray-100 ${r.status === 'Lunas' ? (i % 2 === 0 ? 'bg-green-50/40' : 'bg-green-50/80') : (i % 2 === 0 ? 'bg-red-50/40' : 'bg-red-50/80')}">
                     <td class="p-2 text-gray-400">${start + i + 1}</td>
                     <td class="p-2 font-bold">${r.group}</td>
                     <td class="p-2 text-right">${fmtRp(r.ITB)}</td>
@@ -1323,7 +1325,9 @@
         let donasiDashboardData = null;
 
         async function loadDonasiNTTDashboard() {
-            document.getElementById('donasiEntriesBody').innerHTML = '<tr><td colspan="5" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
+            document.getElementById('donasiEntriesBody').innerHTML = '<tr><td colspan="6" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
+            const isAdmin = currentRole === 'admin';
+            document.getElementById('donasiAksiHeader').textContent = isAdmin ? 'Aksi' : '';
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=getDonasiNTTDashboard`);
                 const json = await res.json();
@@ -1333,21 +1337,78 @@
 
                 document.getElementById('donasiDeadlineLabel').textContent = d.deadline;
                 document.getElementById('donasiTotalTerkumpul').textContent = fmtRp(d.totalTerkumpul);
-                document.getElementById('donasiJumlahLaporan').textContent = d.jumlahLaporan;
-                document.getElementById('donasiKelompokSudah').textContent = d.kelompokSudah + ' / ' + d.totalKelompok;
+                document.getElementById('donasiTotalGroup').textContent = d.totalKelompok;
+                document.getElementById('donasiKelompokSudah').textContent = d.kelompokSudah;
                 document.getElementById('donasiKelompokBelum').textContent = d.kelompokBelum;
 
                 document.getElementById('donasiEntriesBody').innerHTML = d.entries.map((e, i) => `
-                    <tr class="border-t border-gray-100">
+                    <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}" id="donasi-row-${e.row}">
                         <td class="p-2 text-gray-400">${i + 1}</td>
                         <td class="p-2 font-bold">${e.group}</td>
                         <td class="p-2 text-right">${fmtRp(e.nominal)}</td>
                         <td class="p-2 text-center">${e.tanggalTransfer}</td>
                         <td class="p-2 text-center text-xs text-gray-500">${e.timestamp}</td>
+                        ${isAdmin ? `
+                        <td class="p-2 text-center">
+                            <button onclick="toggleEditDonasi(${e.row})" class="text-xs text-blue-600 font-bold mr-2">Edit</button>
+                            <button onclick="hapusDonasi(${e.row})" class="text-xs text-red-600 font-bold">Hapus</button>
+                        </td>` : ''}
                     </tr>
-                `).join('') || '<tr><td colspan="5" class="p-4 text-center text-xs text-gray-400">Belum ada laporan masuk</td></tr>';
+                    ${isAdmin ? `
+                    <tr class="hidden bg-blue-50/40" id="donasi-edit-${e.row}">
+                        <td colspan="6" class="p-2">
+                            <div class="flex flex-wrap gap-2 items-end">
+                                <div>
+                                    <label class="block text-[10px] text-gray-400">Kelompok</label>
+                                    <input type="text" id="donasi-edit-group-${e.row}" value="${e.group}" class="border rounded-lg p-1.5 text-xs w-24">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-gray-400">Nominal</label>
+                                    <input type="text" inputmode="numeric" oninput="formatRupiahField(this)" id="donasi-edit-nominal-${e.row}" value="${Number(e.nominal).toLocaleString('id-ID')}" class="border rounded-lg p-1.5 text-xs w-28 text-right">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-gray-400">Tanggal Transfer</label>
+                                    <input type="date" id="donasi-edit-tanggal-${e.row}" value="${e.tanggalTransfer}" class="border rounded-lg p-1.5 text-xs">
+                                </div>
+                                <button onclick="simpanEditDonasi(${e.row})" class="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg">Simpan</button>
+                            </div>
+                        </td>
+                    </tr>` : ''}
+                `).join('') || '<tr><td colspan="6" class="p-4 text-center text-xs text-gray-400">Belum ada laporan masuk</td></tr>';
             } catch (err) {
-                document.getElementById('donasiEntriesBody').innerHTML = `<tr><td colspan="5" class="p-4 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
+                document.getElementById('donasiEntriesBody').innerHTML = `<tr><td colspan="6" class="p-4 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        function toggleEditDonasi(row) {
+            document.getElementById('donasi-edit-' + row).classList.toggle('hidden');
+        }
+
+        async function simpanEditDonasi(row) {
+            const group = document.getElementById('donasi-edit-group-' + row).value.trim();
+            const nominal = unformatRupiah(document.getElementById('donasi-edit-nominal-' + row).value);
+            const tanggal = document.getElementById('donasi-edit-tanggal-' + row).value;
+            if (!group || !nominal || !tanggal) { alert('Isi semua kolom terlebih dahulu.'); return; }
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=updateDonasiNTT&row=${row}&group=${encodeURIComponent(group)}&nominal=${encodeURIComponent(nominal)}&tanggal=${encodeURIComponent(tanggal)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.success) { loadDonasiNTTDashboard(); }
+                else { alert('Gagal menyimpan: ' + json.error); }
+            } catch (err) {
+                alert('Terjadi kesalahan koneksi: ' + err.message);
+            }
+        }
+
+        async function hapusDonasi(row) {
+            if (!confirm('Hapus laporan donasi ini? Kelompok yang bersangkutan akan bisa submit ulang setelah ini.')) return;
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=deleteDonasiNTT&row=${row}`);
+                const json = await res.json();
+                if (json.success) { loadDonasiNTTDashboard(); }
+                else { alert('Gagal menghapus: ' + json.error); }
+            } catch (err) {
+                alert('Terjadi kesalahan koneksi: ' + err.message);
             }
         }
 
@@ -1695,7 +1756,11 @@
         let kasRkRows = { Iwb: [], NonIwb: [] };
 
         function actionSuffixFor(variant) { return variant === 'Iwb' ? 'IWB' : 'NonIWB'; }
-        function isKasReadOnly() { return currentRole === 'bph'; }
+        /** wabendum boleh edit Kas IWB; admin boleh edit Kas Non IWB; selain itu (termasuk admin lihat IWB, atau BPH) read-only. */
+        function isKasReadOnly(variant) {
+            if (variant === 'Iwb') return currentRole !== 'wabendum';
+            return currentRole !== 'admin';
+        }
 
         function switchKasTab(variant, subtab) {
             ['rk', 'pengeluaran'].forEach(s => {
@@ -1731,7 +1796,7 @@
         function renderKasRkTable(variant) {
             const pane = document.getElementById('kas' + variant + 'Pane-rk');
             const rows = kasRkRows[variant] || [];
-            const readOnly = isKasReadOnly();
+            const readOnly = isKasReadOnly(variant);
             const uploadHtml = readOnly ? '' : `
                 <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
                     <label class="block text-xs font-bold text-gray-500 mb-2">Upload PDF Rekening Koran Bank BSI</label>
@@ -1742,7 +1807,7 @@
                 </div>
             `;
             const tableRows = rows.map((r, i) => readOnly ? `
-                <tr class="border-t border-gray-100">
+                <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
                     <td class="p-1.5 text-gray-400">${i + 1}</td>
                     <td class="p-1.5">${r.tanggal}</td>
                     <td class="p-1.5">${r.uraian}</td>
@@ -1752,7 +1817,7 @@
                     <td class="p-1.5">${r.keterangan || ''}</td>
                 </tr>
             ` : `
-                <tr class="border-t border-gray-100">
+                <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
                     <td class="p-1.5 text-gray-400">${i + 1}</td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-24" value="${r.tanggal || ''}" onchange="updateKasRkCell('${variant}',${i},'tanggal',this.value)"></td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-full min-w-[140px]" value="${String(r.uraian || '').replace(/"/g, '&quot;')}" onchange="updateKasRkCell('${variant}',${i},'uraian',this.value)"></td>
@@ -1933,7 +1998,7 @@
         async function renderKasPengeluaran(variant) {
             const pane = document.getElementById('kas' + variant + 'Pane-pengeluaran');
             pane.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Memuat...</p>';
-            const readOnly = isKasReadOnly();
+            const readOnly = isKasReadOnly(variant);
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=listPengeluaran${actionSuffixFor(variant)}`);
                 const json = await res.json();
