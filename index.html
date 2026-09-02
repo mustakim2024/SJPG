@@ -464,9 +464,12 @@
                     <div id="pesanConversationList" class="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden"></div>
                 </div>
                 <div id="pesanChatView" class="hidden">
-                    <div class="flex items-center gap-2 mb-3">
-                        <button onclick="kembaliKeDaftarPesan()" class="text-gray-500 hover:text-primary text-xl leading-none px-1" title="Kembali">&larr;</button>
-                        <h3 class="font-bold" id="pesanChatViewTitle">Kelompok</h3>
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <button onclick="kembaliKeDaftarPesan()" class="text-gray-500 hover:text-primary text-xl leading-none px-1" title="Kembali">&larr;</button>
+                            <h3 class="font-bold" id="pesanChatViewTitle">Kelompok</h3>
+                        </div>
+                        <button onclick="hapusSeluruhPercakapan()" class="text-xs text-red-600 font-bold border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg whitespace-nowrap">Hapus Percakapan</button>
                     </div>
                     <div id="pesanChatAdminBox" class="border border-gray-100 rounded-xl p-3 h-80 overflow-y-auto bg-gray-50 space-y-2 mb-3"></div>
                     <div class="flex gap-2 items-end">
@@ -1925,6 +1928,23 @@
                 const json = await res.json();
                 if (json.success) { loadPesanChatAdmin(); }
                 else { alert('Gagal menghapus: ' + json.error); }
+            } catch (err) {
+                alert('Terjadi kesalahan koneksi: ' + err.message);
+            }
+        }
+
+        /** Hapus SELURUH riwayat percakapan dengan kelompok yang sedang dibuka, sekali klik. */
+        async function hapusSeluruhPercakapan() {
+            if (!pesanActiveGroup) return;
+            if (!confirm(`Hapus SELURUH riwayat chat dengan kelompok ${pesanActiveGroup}? Semua pesan akan hilang di kedua sisi dan tidak bisa dikembalikan.`)) return;
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=deletePercakapan&group=${encodeURIComponent(pesanActiveGroup)}`);
+                const json = await res.json();
+                if (json.success) {
+                    loadPesanMasuk();
+                } else {
+                    alert('Gagal menghapus: ' + json.error);
+                }
             } catch (err) {
                 alert('Terjadi kesalahan koneksi: ' + err.message);
             }
