@@ -587,7 +587,7 @@
                     { tab: 'kelolaSetoran', label: 'Kelola Setoran' },
                     { tab: 'kelolaAnggota', label: 'Kelola Anggota' },
                     { tab: 'donasiNtt', label: 'Donasi NTT' },
-                    { tab: 'kasIwb', label: 'Laporan Kas IWB' },
+                    { tab: 'kasIwb', label: 'Kas IWB' },
                     { tab: 'kasNonIwb', label: 'Kas Non IWB' }
                 ];
             } else if (currentRole === 'bph') {
@@ -1820,16 +1820,31 @@
             renderKasRkTable(variant);
         }
 
+        /** Ubah "02 Mar 2026 19:25" jadi "2026-03-02" untuk disimpan sebagai tanggal transaksi pengeluaran. */
+        function tanggalRkKeISO(str) {
+            const BULAN_EN = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', Mei: '05', May: '05', Jun: '06', Jul: '07', Agu: '08', Aug: '08', Sep: '09', Okt: '10', Oct: '10', Nov: '11', Des: '12', Dec: '12' };
+            const m = String(str || '').match(/(\d{2})\s+(\w{3})\s+(\d{4})/);
+            if (!m) return '';
+            return `${m[3]}-${BULAN_EN[m[2]] || '01'}-${m[1]}`;
+        }
+
         function renderKasRkTable(variant) {
             const pane = document.getElementById('kas' + variant + 'Pane-rk');
             const rows = kasRkRows[variant] || [];
             const readOnly = isKasReadOnly(variant);
+            const saldoAkhir = rows.length ? rows[rows.length - 1].saldo : 0;
+            const saldoHtml = `
+                <div class="bg-primary/10 border border-primary/30 rounded-xl p-3 mb-4">
+                    <p class="text-xs text-gray-500">Saldo Kas Saat Ini (dari saldo akhir data terbaru)</p>
+                    <p class="font-bold text-xl text-primary">${fmtRp(saldoAkhir)}</p>
+                </div>
+            `;
             const uploadHtml = readOnly ? '' : `
                 <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
                     <label class="block text-xs font-bold text-gray-500 mb-2">Upload PDF Rekening Koran Bank BSI</label>
                     <input type="file" accept="application/pdf" id="kasPdfInput-${variant}" class="text-xs mb-2">
                     <button onclick="prosesPdfRekeningKoran('${variant}')" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">Proses PDF</button>
-                    <p class="text-xs text-gray-400 mt-2">Hasil ekstraksi otomatis dari PDF bisa tidak 100% akurat &mdash; periksa & koreksi tiap baris sebelum klik Simpan.</p>
+                    <p class="text-xs text-gray-400 mt-2">Hasil ekstraksi otomatis dari PDF bisa tidak 100% akurat &mdash; periksa & koreksi tiap baris sebelum klik Simpan. Berkas yang sama tidak bisa diupload dua kali.</p>
                     <p id="kasPdfMsg-${variant}" class="text-xs mt-2 hidden"></p>
                 </div>
             `;
@@ -1852,10 +1867,16 @@
                     <td class="p-1"><input class="border rounded p-1 text-xs w-24 text-right" value="${r.kredit || 0}" onchange="updateKasRkCell('${variant}',${i},'kredit',this.value)"></td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-24 text-right" value="${r.saldo || 0}" onchange="updateKasRkCell('${variant}',${i},'saldo',this.value)"></td>
                     <td class="p-1"><input class="border rounded p-1 text-xs w-full min-w-[120px]" value="${String(r.keterangan || '').replace(/"/g, '&quot;')}" onchange="updateKasRkCell('${variant}',${i},'keterangan',this.value)" placeholder="Keterangan..."></td>
+                    <td class="p-1 text-center">
+                        ${r.confirmed
+                    ? `<span class="px-2 py-1 rounded-lg text-xs font-bold bg-green-500 text-white whitespace-nowrap">CONFIRMED</span>`
+                    : `<button onclick="confirmPengeluaranRow('${variant}',${i})" class="px-2 py-1 rounded-lg text-xs font-bold bg-red-500 text-white whitespace-nowrap hover:bg-red-600">CONFIRM</button>`}
+                    </td>
                     <td class="p-1"><button onclick="hapusKasRkRow('${variant}',${i})" class="text-red-500 text-xs font-bold px-1">&times;</button></td>
                 </tr>
             `).join('');
             pane.innerHTML = `
+                ${saldoHtml}
                 ${uploadHtml}
                 <div class="overflow-x-auto border border-gray-100 rounded-xl">
                     <table class="w-full text-xs">
@@ -1868,14 +1889,37 @@
                                 <th class="text-right p-2 font-bold">Kredit</th>
                                 <th class="text-right p-2 font-bold">Saldo</th>
                                 <th class="text-left p-2 font-bold">Keterangan</th>
-                                ${readOnly ? '' : '<th></th>'}
+                                ${readOnly ? '' : '<th class="text-center p-2 font-bold">Laporan Pengeluaran</th><th></th>'}
                             </tr>
                         </thead>
-                        <tbody>${tableRows || `<tr><td colspan="8" class="p-4 text-center text-gray-400">Belum ada data</td></tr>`}</tbody>
+                        <tbody>${tableRows || `<tr><td colspan="${readOnly ? 7 : 9}" class="p-4 text-center text-gray-400">Belum ada data</td></tr>`}</tbody>
                     </table>
                 </div>
                 ${readOnly ? '' : `<button onclick="simpanKasRk('${variant}')" class="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold">Simpan</button><p id="kasRkSaveMsg-${variant}" class="text-xs text-center mt-2 hidden"></p>`}
             `;
+        }
+
+        async function confirmPengeluaranRow(variant, idx) {
+            const row = kasRkRows[variant][idx];
+            if (row.confirmed) return;
+            const amount = row.debit > 0 ? row.debit : row.kredit;
+            if (!amount || amount <= 0) { alert('Tidak ada jumlah pada baris ini untuk dilaporkan sebagai pengeluaran.'); return; }
+            const nama = row.uraian || ('Transaksi ' + row.tanggal);
+            const tanggalISO = tanggalRkKeISO(row.tanggal) || new Date().toISOString().slice(0, 10);
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=addPengeluaran${actionSuffixFor(variant)}&nama=${encodeURIComponent(nama)}&nominal=${encodeURIComponent(amount)}&tanggal=${encodeURIComponent(tanggalISO)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.success) {
+                    row.confirmed = true;
+                    renderKasRkTable(variant);
+                    await simpanKasRk(variant, true);
+                } else {
+                    alert('Gagal mencatat ke Pengeluaran: ' + json.error);
+                }
+            } catch (err) {
+                alert('Terjadi kesalahan koneksi: ' + err.message);
+            }
         }
 
         function updateKasRkCell(variant, idx, field, value) {
@@ -1888,20 +1932,28 @@
             renderKasRkTable(variant);
         }
 
-        async function simpanKasRk(variant) {
+        async function simpanKasRk(variant, silent) {
             const msgEl = document.getElementById('kasRkSaveMsg-' + variant);
             try {
                 const url = `${APPS_SCRIPT_URL}?action=saveRekeningKoran${actionSuffixFor(variant)}&rows=${encodeURIComponent(JSON.stringify(kasRkRows[variant]))}`;
                 const res = await fetch(url);
                 const json = await res.json();
+                if (silent) return;
                 msgEl.textContent = json.success ? `Tersimpan (${json.count} baris transaksi).` : ('Gagal: ' + json.error);
                 msgEl.className = 'text-xs text-center mt-2 ' + (json.success ? 'text-green-600' : 'text-red-600');
                 msgEl.classList.remove('hidden');
             } catch (err) {
+                if (silent) return;
                 msgEl.textContent = 'Terjadi kesalahan koneksi: ' + err.message;
                 msgEl.className = 'text-xs text-center mt-2 text-red-600';
                 msgEl.classList.remove('hidden');
             }
+        }
+
+        /** Hitung sidik jari (SHA-256) dari isi file, untuk deteksi berkas yang sama persis. */
+        async function hitungHashFile(arrayBuffer) {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
         async function prosesPdfRekeningKoran(variant) {
@@ -1913,12 +1965,23 @@
                 msgEl.classList.remove('hidden');
                 return;
             }
-            msgEl.textContent = 'Memproses PDF...';
+            msgEl.textContent = 'Memeriksa berkas...';
             msgEl.className = 'text-xs mt-2 text-gray-500';
             msgEl.classList.remove('hidden');
             try {
                 const file = fileInput.files[0];
                 const arrayBuffer = await file.arrayBuffer();
+
+                const hash = await hitungHashFile(arrayBuffer);
+                const cekRes = await fetch(`${APPS_SCRIPT_URL}?action=checkUploadHash&variant=${actionSuffixFor(variant)}&hash=${hash}`);
+                const cekJson = await cekRes.json();
+                if (!cekJson.success) {
+                    msgEl.textContent = cekJson.error || 'Berkas sudah pernah di-upload';
+                    msgEl.className = 'text-xs mt-2 text-red-600 font-bold';
+                    return;
+                }
+
+                msgEl.textContent = 'Memproses PDF...';
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 const parsed = await parseBsiRekeningKoranPdf(pdf);
                 if (!parsed.length) {
@@ -2026,6 +2089,8 @@
             const pane = document.getElementById('kas' + variant + 'Pane-pengeluaran');
             pane.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Memuat...</p>';
             const readOnly = isKasReadOnly(variant);
+            // Admin selalu boleh kelola (edit/hapus) Pengeluaran di kedua jenis Kas, walau bukan pemilik Rekening Korannya.
+            const canManage = (currentRole === 'admin') || !readOnly;
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=listPengeluaran${actionSuffixFor(variant)}`);
                 const json = await res.json();
@@ -2050,17 +2115,46 @@
                 `;
                 const total = data.reduce((s, r) => s + r.nominal, 0);
                 const rowsHtml = data.map((r, i) => `
-                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 flex justify-between items-center text-sm">
-                        <div><span class="text-gray-400 mr-2">${i + 1}.</span><span class="font-bold">${r.nama}</span> <span class="text-xs text-gray-400">(${r.tanggal})</span></div>
-                        <div class="flex items-center gap-3">
-                            <span class="font-bold text-primary">${fmtRp(r.nominal)}</span>
-                            ${readOnly ? '' : `<button onclick="hapusPengeluaran('${variant}',${r.row})" class="text-xs text-red-600 font-bold">Hapus</button>`}
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-3" id="pengeluaran-${variant}-row-${r.row}">
+                        <div class="flex justify-between items-center text-sm">
+                            <div><span class="text-gray-400 mr-2">${i + 1}.</span><span class="font-bold">${r.nama}</span> <span class="text-xs text-gray-400">(${r.tanggal})</span></div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-bold text-primary">${fmtRp(r.nominal)}</span>
+                                ${canManage ? `<button onclick="toggleEditPengeluaran('${variant}',${r.row})" class="text-xs text-blue-600 font-bold">Edit</button><button onclick="hapusPengeluaran('${variant}',${r.row})" class="text-xs text-red-600 font-bold">Hapus</button>` : ''}
+                            </div>
                         </div>
+                        ${canManage ? `
+                        <div id="pengeluaran-edit-${variant}-${r.row}" class="hidden mt-2 flex flex-wrap gap-2 items-end">
+                            <input type="text" id="pengeluaran-edit-nama-${variant}-${r.row}" value="${String(r.nama).replace(/"/g, '&quot;')}" class="border rounded-lg p-1.5 text-xs flex-1 min-w-[100px]">
+                            <input type="text" inputmode="numeric" oninput="formatRupiahField(this)" id="pengeluaran-edit-nominal-${variant}-${r.row}" value="${Number(r.nominal).toLocaleString('id-ID')}" class="border rounded-lg p-1.5 text-xs w-28 text-right">
+                            <input type="date" id="pengeluaran-edit-tanggal-${variant}-${r.row}" value="${r.tanggal}" class="border rounded-lg p-1.5 text-xs">
+                            <button onclick="simpanEditPengeluaran('${variant}',${r.row})" class="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg">Simpan</button>
+                        </div>` : ''}
                     </div>
                 `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Belum ada catatan pengeluaran</p>';
                 pane.innerHTML = formHtml + `<p class="text-xs text-gray-500 mb-2">Total Pengeluaran: <span class="font-bold text-primary">${fmtRp(total)}</span></p><div class="space-y-2">${rowsHtml}</div>`;
             } catch (err) {
                 pane.innerHTML = `<p class="text-xs text-red-500 text-center py-6">Error: ${err.message}</p>`;
+            }
+        }
+
+        function toggleEditPengeluaran(variant, row) {
+            document.getElementById('pengeluaran-edit-' + variant + '-' + row).classList.toggle('hidden');
+        }
+
+        async function simpanEditPengeluaran(variant, row) {
+            const nama = document.getElementById('pengeluaran-edit-nama-' + variant + '-' + row).value.trim();
+            const nominal = unformatRupiah(document.getElementById('pengeluaran-edit-nominal-' + variant + '-' + row).value);
+            const tanggal = document.getElementById('pengeluaran-edit-tanggal-' + variant + '-' + row).value;
+            if (!nama || !nominal || !tanggal) { alert('Isi semua kolom terlebih dahulu.'); return; }
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=updatePengeluaran${actionSuffixFor(variant)}&row=${row}&nama=${encodeURIComponent(nama)}&nominal=${encodeURIComponent(nominal)}&tanggal=${encodeURIComponent(tanggal)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.success) { renderKasPengeluaran(variant); }
+                else { alert('Gagal menyimpan: ' + json.error); }
+            } catch (err) {
+                alert('Terjadi kesalahan koneksi: ' + err.message);
             }
         }
 
