@@ -459,20 +459,33 @@
 
             <!-- ===== PESAN BENDUM GROUP (admin) ===== -->
             <section id="tabPesanBendum" class="hidden">
-                <h3 class="font-bold mb-3">Pesan Bendum Group</h3>
-                <div class="mb-3">
+                <h3 class="font-bold mb-1">Pesan Bendum Group</h3>
+                <p class="text-xs text-gray-400 mb-3">Semua pesan yang dikirim bendahara otomatis muncul di sini. Hanya bisa hilang kalau dihapus manual oleh admin.</p>
+                <div class="overflow-x-auto border border-gray-100 rounded-xl mb-6">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="text-left p-2 font-bold w-10">No</th>
+                                <th class="text-left p-2 font-bold">Kelompok</th>
+                                <th class="text-left p-2 font-bold">Waktu Kirim</th>
+                                <th class="text-left p-2 font-bold">Isi Pesan</th>
+                                <th class="text-center p-2 font-bold w-16">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pesanMasukBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="bg-gray-50 border border-gray-100 rounded-2xl p-4 max-w-md">
+                    <p class="font-bold text-sm mb-2">Balas ke Kelompok</p>
                     <label class="block text-xs font-bold text-gray-500 mb-1">Pilih Kelompok</label>
-                    <select id="pesanGroupSelect" onchange="loadPesanChatAdmin()" class="border rounded-lg p-2 text-sm w-48"></select>
+                    <select id="pesanGroupSelect" class="w-full border rounded-lg p-2 text-sm mb-2 bg-white"></select>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Isi Pesan (maksimal 50 karakter)</label>
+                    <input type="text" id="pesanAdminReplyInput" maxlength="50" placeholder="Balas pesan..." class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                    <p class="text-xs text-gray-400 mt-1"><span id="pesanAdminReplyCount">0</span>/50 karakter</p>
+                    <button onclick="kirimPesanBalasAdmin()" id="pesanAdminReplyBtn" class="w-full mt-2 bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Kirim Balasan</button>
+                    <p id="pesanAdminReplyMsg" class="text-xs text-center mt-2 hidden"></p>
                 </div>
-                <div id="pesanChatAdminBox" class="border border-gray-100 rounded-xl p-3 h-80 overflow-y-auto bg-gray-50 space-y-2 mb-3"></div>
-                <div class="flex gap-2 items-end">
-                    <div class="flex-1">
-                        <input type="text" id="pesanAdminReplyInput" maxlength="50" placeholder="Balas pesan..." class="w-full border-2 border-gray-200 bg-white p-2 rounded-lg text-sm outline-none">
-                        <p class="text-xs text-gray-400 mt-1"><span id="pesanAdminReplyCount">0</span>/50 karakter</p>
-                    </div>
-                    <button onclick="kirimPesanBalasAdmin()" id="pesanAdminReplyBtn" class="bg-primary text-white px-4 py-2.5 rounded-xl font-bold text-sm shrink-0">Kirim</button>
-                </div>
-                <p id="pesanAdminReplyMsg" class="text-xs text-center mt-2 hidden"></p>
             </section>
 
             </main>
@@ -684,7 +697,7 @@
             if (tab === 'donasiNtt') { loadDonasiNTTDashboard(); }
             if (tab === 'kasIwb') { switchKasTab('Iwb', 'rk'); }
             if (tab === 'kasNonIwb') { switchKasTab('NonIwb', 'rk'); }
-            if (tab === 'pesanBendum') { loadPesanGroupOptions(); }
+            if (tab === 'pesanBendum') { loadPesanMasuk(); loadPesanGroupOptions(); }
             if (tab === 'pesanAdmin') { loadPesanChatBendahara(); }
         }
 
@@ -700,7 +713,7 @@
             if (currentTab === 'donasiNtt') { loadDonasiNTTDashboard(); return; }
             if (currentTab === 'kasIwb') { refreshKasTab('Iwb'); return; }
             if (currentTab === 'kasNonIwb') { refreshKasTab('NonIwb'); return; }
-            if (currentTab === 'pesanBendum') { loadPesanChatAdmin(); return; }
+            if (currentTab === 'pesanBendum') { loadPesanMasuk(); return; }
             if (currentTab === 'pesanAdmin') { loadPesanChatBendahara(); return; }
         }
 
@@ -1829,23 +1842,30 @@
                 const prevSelected = sel.value;
                 sel.innerHTML = groups.map(g => `<option value="${g}">${g}</option>`).join('');
                 if (groups.includes(prevSelected)) sel.value = prevSelected;
-                loadPesanChatAdmin();
             } catch (err) {
                 sel.innerHTML = '';
             }
         }
 
-        async function loadPesanChatAdmin() {
-            const group = document.getElementById('pesanGroupSelect').value;
-            const box = document.getElementById('pesanChatAdminBox');
-            if (!group) { box.innerHTML = '<p class="text-xs text-gray-400 text-center py-10">Tidak ada kelompok.</p>'; return; }
-            box.innerHTML = '<p class="text-xs text-gray-400 text-center py-10">Memuat...</p>';
+        /** Feed gabungan: semua pesan yang dikirim bendahara dari SEMUA kelompok, otomatis muncul tanpa perlu pilih kelompok. */
+        async function loadPesanMasuk() {
+            const body = document.getElementById('pesanMasukBody');
+            body.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
             try {
-                const res = await fetch(`${APPS_SCRIPT_URL}?action=listPesanByGroup&group=${encodeURIComponent(group)}`);
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=listAllIncomingPesan`);
                 const json = await res.json();
-                renderChatBubbles('pesanChatAdminBox', json.success ? json.data : [], 'admin', true);
+                const data = json.success ? json.data : [];
+                body.innerHTML = data.map((p, i) => `
+                    <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                        <td class="p-2 text-gray-400">${i + 1}</td>
+                        <td class="p-2 font-bold">${p.group}</td>
+                        <td class="p-2 text-xs text-gray-500">${p.waktuKirim}</td>
+                        <td class="p-2">${p.isiPesan}</td>
+                        <td class="p-2 text-center"><button onclick="hapusPesanChat(${p.row})" class="text-xs text-red-600 font-bold">Hapus</button></td>
+                    </tr>
+                `).join('') || '<tr><td colspan="5" class="p-4 text-center text-xs text-gray-400">Belum ada pesan masuk dari bendahara</td></tr>';
             } catch (err) {
-                box.innerHTML = `<p class="text-xs text-red-500 text-center py-10">Error: ${err.message}</p>`;
+                body.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
             }
         }
 
@@ -1872,7 +1892,9 @@
                 if (json.success) {
                     inputEl.value = '';
                     document.getElementById('pesanAdminReplyCount').textContent = '0';
-                    loadPesanChatAdmin();
+                    msgEl.textContent = 'Balasan terkirim ke kelompok ' + group + '.';
+                    msgEl.className = 'text-xs text-center mt-2 text-green-600';
+                    msgEl.classList.remove('hidden');
                 } else {
                     msgEl.textContent = 'Gagal: ' + json.error;
                     msgEl.className = 'text-xs text-center mt-2 text-red-600';
@@ -1884,17 +1906,17 @@
                 msgEl.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Kirim';
+                btn.textContent = 'Kirim Balasan';
             }
         }
 
-        /** Hapus 1 pesan dari percakapan (hanya admin) - otomatis hilang juga di sisi bendahara karena sumber datanya sama. */
+        /** Hapus 1 pesan (hanya admin) - otomatis hilang juga di sisi bendahara karena sumber datanya sama. */
         async function hapusPesanChat(row) {
             if (!confirm('Hapus pesan ini? Pesan juga akan hilang di sisi bendahara.')) return;
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=deletePesanAdmin&row=${row}`);
                 const json = await res.json();
-                if (json.success) { loadPesanChatAdmin(); }
+                if (json.success) { loadPesanMasuk(); }
                 else { alert('Gagal menghapus: ' + json.error); }
             } catch (err) {
                 alert('Terjadi kesalahan koneksi: ' + err.message);
