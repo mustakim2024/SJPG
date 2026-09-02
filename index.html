@@ -6,6 +6,10 @@
     <title>Sunduquna Juyubuna</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <script>
         tailwind.config = { theme: { extend: { colors: { primary: '#FE5000' } } } };
     </script>
@@ -30,15 +34,18 @@
         </div>
     </div>
 
-    <div id="app" class="w-full max-w-[700px] mx-auto h-[100dvh] bg-white flex flex-col shadow-xl overflow-hidden relative">
+    <div id="app" class="w-full max-w-[900px] mx-auto h-[100dvh] bg-white flex flex-col shadow-xl overflow-hidden relative">
         <header class="h-16 flex items-center justify-between px-4 border-b bg-white shrink-0 gap-2">
             <h1 class="font-bold text-sm text-primary uppercase shrink-0">Sunduquna Juyubuna</h1>
-            <div id="navButtons" class="flex gap-1 text-xs overflow-x-auto"></div>
-            <button onclick="refreshCurrentTab()" class="shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs bg-green-100 text-green-700 hover:bg-green-200 whitespace-nowrap">Refresh</button>
-            <button onclick="logout()" class="shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 whitespace-nowrap">Keluar</button>
+            <div class="flex items-center gap-2">
+                <button onclick="refreshCurrentTab()" class="shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs bg-green-100 text-green-700 hover:bg-green-200 whitespace-nowrap">Refresh</button>
+                <button onclick="logout()" class="shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 whitespace-nowrap">Keluar</button>
+            </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-4 space-y-6">
+        <div class="flex-1 flex overflow-hidden">
+            <aside id="sidebarNav" class="w-32 sm:w-44 shrink-0 border-r bg-gray-50 overflow-y-auto py-3 px-2 space-y-1"></aside>
+            <main class="flex-1 overflow-y-auto p-4 space-y-6">
 
             <!-- ===== TAMPILAN KELOMPOK (non-admin) ===== -->
             <section id="tabGroupInput" class="hidden">
@@ -402,7 +409,30 @@
                 </div>
             </section>
 
-        </main>
+            <!-- ===== KAS IWB (wabendum, atau BPH read-only) ===== -->
+            <section id="tabKasIwb" class="hidden">
+                <h3 class="font-bold mb-3">Kas IWB</h3>
+                <div class="flex gap-2 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
+                    <button id="kasIwbTabBtn-rk" onclick="switchKasTab('Iwb','rk')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Rekening Koran IWB</button>
+                    <button id="kasIwbTabBtn-pengeluaran" onclick="switchKasTab('Iwb','pengeluaran')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Catatan Pengeluaran IWB</button>
+                </div>
+                <div id="kasIwbPane-rk"></div>
+                <div id="kasIwbPane-pengeluaran" class="hidden"></div>
+            </section>
+
+            <!-- ===== KAS NON IWB (admin, atau BPH read-only) ===== -->
+            <section id="tabKasNonIwb" class="hidden">
+                <h3 class="font-bold mb-3">Kas Non IWB</h3>
+                <div class="flex gap-2 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
+                    <button id="kasNonIwbTabBtn-rk" onclick="switchKasTab('NonIwb','rk')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Rekening Koran DPC Non IWB</button>
+                    <button id="kasNonIwbTabBtn-pengeluaran" onclick="switchKasTab('NonIwb','pengeluaran')" class="px-4 py-2 rounded-lg text-sm font-bold transition-colors">Pengeluaran Non IWB</button>
+                </div>
+                <div id="kasNonIwbPane-rk"></div>
+                <div id="kasNonIwbPane-pengeluaran" class="hidden"></div>
+            </section>
+
+            </main>
+        </div>
     </div>
 
     <script>
@@ -533,42 +563,56 @@
         }
 
         function setupNav() {
-            const nav = document.getElementById('navButtons');
+            const nav = document.getElementById('sidebarNav');
+            let items = [];
             if (currentRole === 'admin') {
-                nav.innerHTML = `
-                    <button onclick="showTab('dashboard')" id="btn-dashboard" class="px-3 py-1.5 rounded-lg font-bold whitespace-nowrap">Dashboard</button>
-                    <button onclick="showTab('kelolaSetoran')" id="btn-kelolaSetoran" class="px-3 py-1.5 rounded-lg font-bold whitespace-nowrap">Kelola Setoran</button>
-                    <button onclick="showTab('kelolaAnggota')" id="btn-kelolaAnggota" class="px-3 py-1.5 rounded-lg font-bold whitespace-nowrap">Kelola Anggota</button>
-                    <button onclick="showTab('donasiNtt')" id="btn-donasiNtt" class="px-3 py-1.5 rounded-lg font-bold whitespace-nowrap">Donasi NTT</button>
-                `;
-                showTab('dashboard');
+                items = [
+                    { tab: 'dashboard', label: 'Dashboard' },
+                    { tab: 'kelolaSetoran', label: 'Kelola Setoran' },
+                    { tab: 'kelolaAnggota', label: 'Kelola Anggota' },
+                    { tab: 'donasiNtt', label: 'Donasi NTT' },
+                    { tab: 'kasNonIwb', label: 'Kas Non IWB' }
+                ];
+            } else if (currentRole === 'bph') {
+                items = [
+                    { tab: 'dashboard', label: 'Dashboard' },
+                    { tab: 'donasiNtt', label: 'Donasi NTT' },
+                    { tab: 'kasIwb', label: 'Kas IWB' },
+                    { tab: 'kasNonIwb', label: 'Kas Non IWB' }
+                ];
+            } else if (currentRole === 'wabendum') {
+                items = [
+                    { tab: 'kasIwb', label: 'Kas IWB' }
+                ];
             } else {
-                nav.innerHTML = `
-                    <button onclick="showTab('groupInput')" id="btn-groupInput" class="px-3 py-1.5 rounded-lg font-bold whitespace-nowrap">Input Setoran</button>
-                    <button onclick="showTab('dashboard')" id="btn-dashboard" class="px-3 py-1.5 rounded-lg font-bold whitespace-nowrap">Laporan Saya</button>
-                `;
+                items = [
+                    { tab: 'groupInput', label: 'Input Setoran' },
+                    { tab: 'dashboard', label: 'Laporan Saya' }
+                ];
                 document.getElementById('groupNameLabel').textContent = currentGroup;
                 document.getElementById('periodInput').value = currentMonthStr();
                 document.getElementById('periodInput').min = currentMonthStr();
                 document.getElementById('periodInput').max = maxMonthStr();
                 document.getElementById('dashboardTitle').textContent = 'Laporan Kelompok ' + currentGroup;
                 document.getElementById('downloadReportBtn').classList.remove('hidden');
-                showTab('groupInput');
             }
+            nav.innerHTML = items.map(it => `<button onclick="showTab('${it.tab}')" id="btn-${it.tab}" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors">${it.label}</button>`).join('');
+            showTab(items[0].tab);
         }
 
         let currentTab = null;
 
         function showTab(tab) {
             currentTab = tab;
-            ['groupInput', 'dashboard', 'kelolaSetoran', 'kelolaAnggota', 'donasiNtt'].forEach(t => {
-                document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('hidden', t !== tab);
+            ['groupInput', 'dashboard', 'kelolaSetoran', 'kelolaAnggota', 'donasiNtt', 'kasIwb', 'kasNonIwb'].forEach(t => {
+                const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (el) el.classList.toggle('hidden', t !== tab);
                 const btn = document.getElementById('btn-' + t);
-                if (btn) btn.className = 'px-3 py-1.5 rounded-lg font-bold whitespace-nowrap ' + (t === tab ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500');
+                if (btn) btn.className = 'w-full text-left px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ' + (t === tab ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-100');
             });
             if (tab === 'groupInput') { loadGroupTable(); }
             if (tab === 'dashboard') {
-                if (currentRole === 'admin') {
+                if (currentRole === 'admin' || currentRole === 'bph') {
                     document.getElementById('adminDashboardWrap').classList.remove('hidden');
                     document.getElementById('groupDashboardWrap').classList.add('hidden');
                     initAdminDashboard();
@@ -581,18 +625,22 @@
             if (tab === 'kelolaSetoran') { initKelolaSetoran(); }
             if (tab === 'kelolaAnggota') { loadMemberList(); }
             if (tab === 'donasiNtt') { loadDonasiNTTDashboard(); }
+            if (tab === 'kasIwb') { switchKasTab('Iwb', 'rk'); }
+            if (tab === 'kasNonIwb') { switchKasTab('NonIwb', 'rk'); }
         }
 
         /** Dipanggil dari tombol "Refresh" di header - muat ulang data halaman yang sedang aktif saja. */
         function refreshCurrentTab() {
             if (currentTab === 'groupInput') { loadGroupTable(); return; }
             if (currentTab === 'dashboard') {
-                if (currentRole === 'admin') { initAdminDashboard(); } else { loadReport(); }
+                if (currentRole === 'admin' || currentRole === 'bph') { initAdminDashboard(); } else { loadReport(); }
                 return;
             }
             if (currentTab === 'kelolaSetoran') { initKelolaSetoran(); return; }
             if (currentTab === 'kelolaAnggota') { loadMemberList(); return; }
             if (currentTab === 'donasiNtt') { loadDonasiNTTDashboard(); return; }
+            if (currentTab === 'kasIwb') { refreshKasTab('Iwb'); return; }
+            if (currentTab === 'kasNonIwb') { refreshKasTab('NonIwb'); return; }
         }
 
         async function loadMonthsInto(selectId, includeAll) {
@@ -1620,6 +1668,328 @@
                 } else {
                     alert('Gagal menambah: ' + json.error);
                 }
+            } catch (err) {
+                alert('Terjadi kesalahan koneksi: ' + err.message);
+            }
+        }
+
+        // =====================================================================
+        // KAS IWB / KAS NON IWB: Rekening Koran (upload PDF) + Catatan Pengeluaran
+        // =====================================================================
+        let kasRkRows = { Iwb: [], NonIwb: [] };
+
+        function actionSuffixFor(variant) { return variant === 'Iwb' ? 'IWB' : 'NonIWB'; }
+        function isKasReadOnly() { return currentRole === 'bph'; }
+
+        function switchKasTab(variant, subtab) {
+            ['rk', 'pengeluaran'].forEach(s => {
+                const el = document.getElementById('kas' + variant + 'Pane-' + s);
+                if (el) el.classList.toggle('hidden', s !== subtab);
+                const btn = document.getElementById('kas' + variant + 'TabBtn-' + s);
+                if (btn) btn.className = 'px-4 py-2 rounded-lg text-sm font-bold transition-colors ' + (s === subtab ? 'bg-primary text-white shadow' : 'text-gray-500');
+            });
+            if (subtab === 'rk') renderKasRekeningKoran(variant);
+            if (subtab === 'pengeluaran') renderKasPengeluaran(variant);
+        }
+
+        function refreshKasTab(variant) {
+            const rkPane = document.getElementById('kas' + variant + 'Pane-rk');
+            if (rkPane && !rkPane.classList.contains('hidden')) { renderKasRekeningKoran(variant); }
+            else { renderKasPengeluaran(variant); }
+        }
+
+        // ---------- Rekening Koran ----------
+        async function renderKasRekeningKoran(variant) {
+            const pane = document.getElementById('kas' + variant + 'Pane-rk');
+            pane.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Memuat...</p>';
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=listRekeningKoran${actionSuffixFor(variant)}`);
+                const json = await res.json();
+                kasRkRows[variant] = json.success ? json.data : [];
+            } catch (err) {
+                kasRkRows[variant] = [];
+            }
+            renderKasRkTable(variant);
+        }
+
+        function renderKasRkTable(variant) {
+            const pane = document.getElementById('kas' + variant + 'Pane-rk');
+            const rows = kasRkRows[variant] || [];
+            const readOnly = isKasReadOnly();
+            const uploadHtml = readOnly ? '' : `
+                <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
+                    <label class="block text-xs font-bold text-gray-500 mb-2">Upload PDF Rekening Koran Bank BSI</label>
+                    <input type="file" accept="application/pdf" id="kasPdfInput-${variant}" class="text-xs mb-2">
+                    <button onclick="prosesPdfRekeningKoran('${variant}')" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">Proses PDF</button>
+                    <p class="text-xs text-gray-400 mt-2">Hasil ekstraksi otomatis dari PDF bisa tidak 100% akurat &mdash; periksa & koreksi tiap baris sebelum klik Simpan.</p>
+                    <p id="kasPdfMsg-${variant}" class="text-xs mt-2 hidden"></p>
+                </div>
+            `;
+            const tableRows = rows.map((r, i) => readOnly ? `
+                <tr class="border-t border-gray-100">
+                    <td class="p-1.5">${r.tanggal}</td>
+                    <td class="p-1.5">${r.uraian}</td>
+                    <td class="p-1.5 text-right">${fmtRp(r.debit)}</td>
+                    <td class="p-1.5 text-right">${fmtRp(r.kredit)}</td>
+                    <td class="p-1.5 text-right">${fmtRp(r.saldo)}</td>
+                    <td class="p-1.5">${r.keterangan || ''}</td>
+                </tr>
+            ` : `
+                <tr class="border-t border-gray-100">
+                    <td class="p-1"><input class="border rounded p-1 text-xs w-24" value="${r.tanggal || ''}" onchange="updateKasRkCell('${variant}',${i},'tanggal',this.value)"></td>
+                    <td class="p-1"><input class="border rounded p-1 text-xs w-full min-w-[140px]" value="${String(r.uraian || '').replace(/"/g, '&quot;')}" onchange="updateKasRkCell('${variant}',${i},'uraian',this.value)"></td>
+                    <td class="p-1"><input class="border rounded p-1 text-xs w-24 text-right" value="${r.debit || 0}" onchange="updateKasRkCell('${variant}',${i},'debit',this.value)"></td>
+                    <td class="p-1"><input class="border rounded p-1 text-xs w-24 text-right" value="${r.kredit || 0}" onchange="updateKasRkCell('${variant}',${i},'kredit',this.value)"></td>
+                    <td class="p-1"><input class="border rounded p-1 text-xs w-24 text-right" value="${r.saldo || 0}" onchange="updateKasRkCell('${variant}',${i},'saldo',this.value)"></td>
+                    <td class="p-1"><input class="border rounded p-1 text-xs w-full min-w-[120px]" value="${String(r.keterangan || '').replace(/"/g, '&quot;')}" onchange="updateKasRkCell('${variant}',${i},'keterangan',this.value)" placeholder="Keterangan..."></td>
+                    <td class="p-1"><button onclick="hapusKasRkRow('${variant}',${i})" class="text-red-500 text-xs font-bold px-1">&times;</button></td>
+                </tr>
+            `).join('');
+            pane.innerHTML = `
+                ${uploadHtml}
+                <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                    <table class="w-full text-xs">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="text-left p-2 font-bold">Tanggal</th>
+                                <th class="text-left p-2 font-bold">Uraian</th>
+                                <th class="text-right p-2 font-bold">Debit</th>
+                                <th class="text-right p-2 font-bold">Kredit</th>
+                                <th class="text-right p-2 font-bold">Saldo</th>
+                                <th class="text-left p-2 font-bold">Keterangan</th>
+                                ${readOnly ? '' : '<th></th>'}
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows || `<tr><td colspan="7" class="p-4 text-center text-gray-400">Belum ada data</td></tr>`}</tbody>
+                    </table>
+                </div>
+                ${readOnly ? '' : `<button onclick="simpanKasRk('${variant}')" class="w-full mt-4 bg-primary text-white py-3 rounded-xl font-bold">Simpan</button><p id="kasRkSaveMsg-${variant}" class="text-xs text-center mt-2 hidden"></p>`}
+            `;
+        }
+
+        function updateKasRkCell(variant, idx, field, value) {
+            if (field === 'debit' || field === 'kredit' || field === 'saldo') value = unformatRupiah(value) || Number(value) || 0;
+            kasRkRows[variant][idx][field] = value;
+        }
+
+        function hapusKasRkRow(variant, idx) {
+            kasRkRows[variant].splice(idx, 1);
+            renderKasRkTable(variant);
+        }
+
+        async function simpanKasRk(variant) {
+            const msgEl = document.getElementById('kasRkSaveMsg-' + variant);
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=saveRekeningKoran${actionSuffixFor(variant)}&rows=${encodeURIComponent(JSON.stringify(kasRkRows[variant]))}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                msgEl.textContent = json.success ? `Tersimpan (${json.count} baris transaksi).` : ('Gagal: ' + json.error);
+                msgEl.className = 'text-xs text-center mt-2 ' + (json.success ? 'text-green-600' : 'text-red-600');
+                msgEl.classList.remove('hidden');
+            } catch (err) {
+                msgEl.textContent = 'Terjadi kesalahan koneksi: ' + err.message;
+                msgEl.className = 'text-xs text-center mt-2 text-red-600';
+                msgEl.classList.remove('hidden');
+            }
+        }
+
+        async function prosesPdfRekeningKoran(variant) {
+            const fileInput = document.getElementById('kasPdfInput-' + variant);
+            const msgEl = document.getElementById('kasPdfMsg-' + variant);
+            if (!fileInput.files.length) {
+                msgEl.textContent = 'Pilih file PDF terlebih dahulu.';
+                msgEl.className = 'text-xs mt-2 text-red-600';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+            msgEl.textContent = 'Memproses PDF...';
+            msgEl.className = 'text-xs mt-2 text-gray-500';
+            msgEl.classList.remove('hidden');
+            try {
+                const file = fileInput.files[0];
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const parsed = await parseBsiRekeningKoranPdf(pdf);
+                if (!parsed.length) {
+                    msgEl.textContent = 'Tidak ada transaksi yang berhasil terbaca. Format PDF mungkin berbeda dari yang didukung - periksa manual.';
+                    msgEl.className = 'text-xs mt-2 text-amber-600';
+                    return;
+                }
+                kasRkRows[variant] = (kasRkRows[variant] || []).concat(parsed);
+                renderKasRkTable(variant);
+                msgEl.textContent = `Berhasil mengekstrak ${parsed.length} baris transaksi. Periksa dulu sebelum klik Simpan (terutama Debit/Kredit, kalau ada yang meragukan).`;
+                msgEl.className = 'text-xs mt-2 text-green-600';
+            } catch (err) {
+                msgEl.textContent = 'Gagal memproses PDF: ' + err.message;
+                msgEl.className = 'text-xs mt-2 text-red-600';
+            }
+        }
+
+        /** Ubah teks angka Indonesia ("1.600.000,00") jadi Number murni. */
+        function parseAngkaID_(str) {
+            const s = String(str || '').replace(/\s+/g, '').replace(/\./g, '').replace(',', '.');
+            const n = Number(s);
+            return isNaN(n) ? 0 : n;
+        }
+
+        /**
+         * Parser khusus format "Laporan Rekening" Bank BSI (BYOND by BSI), berbasis
+         * POSISI KOLOM asli di PDF (bukan tebak dari teks polos) - jauh lebih akurat.
+         * Kolom pada template ini (satuan PDF point, dikalibrasi dari contoh asli):
+         *   Date & Time  : x0 <= 100
+         *   Detail Trans.: 100 < x0 <= 240
+         *   No Reff      : 240 < x0 <= 340
+         *   Debit        : 380 <= x1 <= 420 (rata kanan)
+         *   Kredit       : 455 <= x1 <= 495 (rata kanan)
+         *   Saldo        : 535 <= x1 <= 575 (rata kanan)
+         * Baris "header" tiap transaksi = baris yang punya tanggal (dd Mon yyyy)
+         * DAN nilai Saldo sekaligus. Baris-baris setelahnya (sampai transaksi
+         * berikutnya) adalah kelanjutan jam & uraian yang di-wrap.
+         * Kalau BSI mengubah template PDF-nya di kemudian hari, kalibrasi ini
+         * mungkin perlu disesuaikan lagi.
+         */
+        async function parseBsiRekeningKoranPdf(pdf) {
+            const records = [];
+            for (let p = 1; p <= pdf.numPages; p++) {
+                const page = await pdf.getPage(p);
+                const content = await page.getTextContent();
+                const items = content.items
+                    .map(it => ({ str: it.str, x0: it.transform[4], x1: it.transform[4] + it.width, y: it.transform[5] }))
+                    .filter(it => it.str.trim() !== '');
+                items.sort((a, b) => (b.y - a.y) || (a.x0 - b.x0));
+
+                const rows = [];
+                let lastY = null, curRow = null;
+                items.forEach(it => {
+                    if (lastY === null || Math.abs(it.y - lastY) > 2) {
+                        curRow = [];
+                        rows.push(curRow);
+                        lastY = it.y;
+                    }
+                    curRow.push(it);
+                });
+
+                let current = null;
+                rows.forEach(row => {
+                    let dateTxt = '', detailTxt = '', debitTxt = '', kreditTxt = '', saldoTxt = '';
+                    row.forEach(it => {
+                        if (it.x1 >= 380 && it.x1 <= 420) { debitTxt += (debitTxt ? ' ' : '') + it.str; return; }
+                        if (it.x1 >= 455 && it.x1 <= 495) { kreditTxt += (kreditTxt ? ' ' : '') + it.str; return; }
+                        if (it.x1 >= 535 && it.x1 <= 575) { saldoTxt += (saldoTxt ? ' ' : '') + it.str; return; }
+                        if (it.x0 <= 100) { dateTxt += (dateTxt ? ' ' : '') + it.str; return; }
+                        if (it.x0 <= 240) { detailTxt += (detailTxt ? ' ' : '') + it.str; return; }
+                        // 240-340 (No Reff) diabaikan - tidak perlu masuk sheet
+                    });
+
+                    const isHeaderRow = /^\d{2}\s+\w{3}\s+\d{4}$/.test(dateTxt.trim()) && saldoTxt.trim() !== '';
+                    if (isHeaderRow) {
+                        if (current) records.push(current);
+                        current = {
+                            tanggal: dateTxt.trim(),
+                            waktu: '',
+                            uraian: detailTxt.trim(),
+                            debit: parseAngkaID_(debitTxt),
+                            kredit: parseAngkaID_(kreditTxt),
+                            saldo: parseAngkaID_(saldoTxt)
+                        };
+                    } else if (current) {
+                        if (dateTxt.trim()) current.waktu = dateTxt.trim();
+                        if (detailTxt.trim()) current.uraian += ' ' + detailTxt.trim();
+                    }
+                });
+                if (current) { records.push(current); current = null; }
+            }
+
+            return records.map(r => ({
+                tanggal: r.tanggal + (r.waktu ? ' ' + r.waktu : ''),
+                uraian: r.uraian.replace(/\s{2,}/g, ' ').trim().slice(0, 150),
+                debit: r.debit,
+                kredit: r.kredit,
+                saldo: r.saldo,
+                keterangan: ''
+            }));
+        }
+
+        // ---------- Catatan Pengeluaran ----------
+        async function renderKasPengeluaran(variant) {
+            const pane = document.getElementById('kas' + variant + 'Pane-pengeluaran');
+            pane.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Memuat...</p>';
+            const readOnly = isKasReadOnly();
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=listPengeluaran${actionSuffixFor(variant)}`);
+                const json = await res.json();
+                const data = json.success ? json.data : [];
+                const formHtml = readOnly ? '' : `
+                    <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4 flex flex-wrap gap-2 items-end">
+                        <div class="flex-1 min-w-[140px]">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Nama Pengeluaran</label>
+                            <input type="text" id="pengeluaran${variant}Nama" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Nominal</label>
+                            <input type="text" inputmode="numeric" oninput="formatRupiahField(this)" id="pengeluaran${variant}Nominal" placeholder="0" class="border-2 border-white bg-white p-2 rounded-lg text-sm outline-none w-32 text-right">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Tanggal Transaksi</label>
+                            <input type="date" id="pengeluaran${variant}Tanggal" class="border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                        <button onclick="tambahPengeluaran('${variant}')" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">Tambah</button>
+                    </div>
+                    <p id="pengeluaran${variant}Msg" class="text-xs mb-2 hidden"></p>
+                `;
+                const total = data.reduce((s, r) => s + r.nominal, 0);
+                const rowsHtml = data.map(r => `
+                    <div class="bg-gray-50 rounded-xl border border-gray-100 p-3 flex justify-between items-center text-sm">
+                        <div><span class="font-bold">${r.nama}</span> <span class="text-xs text-gray-400">(${r.tanggal})</span></div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-primary">${fmtRp(r.nominal)}</span>
+                            ${readOnly ? '' : `<button onclick="hapusPengeluaran('${variant}',${r.row})" class="text-xs text-red-600 font-bold">Hapus</button>`}
+                        </div>
+                    </div>
+                `).join('') || '<p class="text-xs text-gray-400 text-center py-4">Belum ada catatan pengeluaran</p>';
+                pane.innerHTML = formHtml + `<p class="text-xs text-gray-500 mb-2">Total Pengeluaran: <span class="font-bold text-primary">${fmtRp(total)}</span></p><div class="space-y-2">${rowsHtml}</div>`;
+            } catch (err) {
+                pane.innerHTML = `<p class="text-xs text-red-500 text-center py-6">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function tambahPengeluaran(variant) {
+            const nama = document.getElementById('pengeluaran' + variant + 'Nama').value.trim();
+            const nominal = unformatRupiah(document.getElementById('pengeluaran' + variant + 'Nominal').value);
+            const tanggal = document.getElementById('pengeluaran' + variant + 'Tanggal').value;
+            const msgEl = document.getElementById('pengeluaran' + variant + 'Msg');
+            msgEl.classList.add('hidden');
+            if (!nama || !nominal || !tanggal) {
+                msgEl.textContent = 'Isi Nama Pengeluaran, Nominal, dan Tanggal Transaksi terlebih dahulu.';
+                msgEl.className = 'text-xs mb-2 text-red-600';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=addPengeluaran${actionSuffixFor(variant)}&nama=${encodeURIComponent(nama)}&nominal=${encodeURIComponent(nominal)}&tanggal=${encodeURIComponent(tanggal)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.success) {
+                    renderKasPengeluaran(variant);
+                } else {
+                    msgEl.textContent = 'Gagal: ' + json.error;
+                    msgEl.className = 'text-xs mb-2 text-red-600';
+                    msgEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                msgEl.textContent = 'Terjadi kesalahan koneksi: ' + err.message;
+                msgEl.className = 'text-xs mb-2 text-red-600';
+                msgEl.classList.remove('hidden');
+            }
+        }
+
+        async function hapusPengeluaran(variant, row) {
+            if (!confirm('Hapus catatan pengeluaran ini?')) return;
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=deletePengeluaran${actionSuffixFor(variant)}&row=${row}`);
+                const json = await res.json();
+                if (json.success) { renderKasPengeluaran(variant); }
+                else { alert('Gagal menghapus: ' + json.error); }
             } catch (err) {
                 alert('Terjadi kesalahan koneksi: ' + err.message);
             }
