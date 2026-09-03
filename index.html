@@ -484,8 +484,9 @@
             </section>
 
             <!-- ===== PEMESANAN RUANGAN (BPH: isi+lihat, staff: lihat saja) ===== -->
-            <section id="tabPemesananRuangan" class="hidden">
-                <h3 class="font-bold mb-3">Pemesanan Ruangan</h3>
+            <!-- ===== PESAN RUANGAN (form isi saja) ===== -->
+            <section id="tabPesanRuangan" class="hidden">
+                <h3 class="font-bold mb-3">Pesan Ruangan</h3>
 
                 <div id="pemesananFormWrap" class="hidden bg-gray-50 border border-gray-100 rounded-2xl p-4 mb-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -494,11 +495,11 @@
                             <input type="date" id="pemesananTanggal" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Start (Waktu Mulai)</label>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Start (Waktu Mulai) - WIB</label>
                             <input type="time" id="pemesananStart" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Stop (Waktu Berhenti)</label>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Stop (Waktu Berhenti) - WIB</label>
                             <input type="time" id="pemesananStop" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
                         </div>
                         <div class="sm:col-span-2">
@@ -518,15 +519,23 @@
                             <label class="block text-xs font-bold text-gray-500 mb-1">Nama PJ</label>
                             <input type="text" id="pemesananNamaPJ" placeholder="Nama penanggung jawab..." class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
                         </div>
-                        <div class="sm:col-span-2">
+                        <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1">No HP PJ</label>
                             <input type="text" inputmode="numeric" id="pemesananNoHpPJ" placeholder="08xxxxxxxxxx" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Jumlah Peserta</label>
+                            <input type="number" min="1" id="pemesananJumlahPeserta" placeholder="Contoh: 20" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
                         </div>
                     </div>
                     <button onclick="submitPemesananRuangan()" id="pemesananSubmitBtn" class="w-full mt-3 bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Submit</button>
                     <p id="pemesananMsg" class="text-xs text-center mt-2 hidden"></p>
                 </div>
+            </section>
 
+            <!-- ===== LIHAT JADWAL (tabel saja) ===== -->
+            <section id="tabLihatJadwal" class="hidden">
+                <h3 class="font-bold mb-3">Lihat Jadwal Ruangan</h3>
                 <div class="overflow-x-auto border border-gray-100 rounded-xl">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-50">
@@ -534,12 +543,12 @@
                                 <th class="text-left p-2 font-bold w-10">No</th>
                                 <th class="text-left p-2 font-bold">Hari</th>
                                 <th class="text-left p-2 font-bold">Tanggal</th>
-                                <th class="text-left p-2 font-bold">Start</th>
-                                <th class="text-left p-2 font-bold">Stop</th>
+                                <th class="text-left p-2 font-bold">Waktu (WIB)</th>
                                 <th class="text-left p-2 font-bold">Kegiatan</th>
                                 <th class="text-left p-2 font-bold">Ruangan</th>
                                 <th class="text-left p-2 font-bold">Nama PJ</th>
                                 <th class="text-left p-2 font-bold">No HP PJ</th>
+                                <th class="text-left p-2 font-bold">Jumlah Peserta</th>
                                 <th class="text-center p-2 font-bold" id="pemesananAksiHeader"></th>
                             </tr>
                         </thead>
@@ -694,7 +703,8 @@
                     { tab: 'donasiNtt', label: 'Donasi NTT' },
                     { tab: 'kasIwb', label: 'Kas IWB' },
                     { tab: 'kasNonIwb', label: 'Kas Non IWB' },
-                    { tab: 'pemesananRuangan', label: 'Pemesanan Ruangan' }
+                    { tab: 'pesanRuangan', label: 'Pesan Ruangan' },
+                    { tab: 'lihatJadwal', label: 'Lihat Jadwal' }
                 ];
             } else if (currentRole === 'bph') {
                 items = [
@@ -702,11 +712,13 @@
                     { tab: 'donasiNtt', label: 'Donasi NTT' },
                     { tab: 'kasIwb', label: 'Kas IWB' },
                     { tab: 'kasNonIwb', label: 'Kas Non IWB' },
-                    { tab: 'pemesananRuangan', label: 'Pemesanan Ruangan' }
+                    { tab: 'pesanRuangan', label: 'Pesan Ruangan' },
+                    { tab: 'lihatJadwal', label: 'Lihat Jadwal' }
                 ];
             } else if (currentRole === 'staff') {
                 items = [
-                    { tab: 'pemesananRuangan', label: 'Pemesanan Ruangan' }
+                    { tab: 'pesanRuangan', label: 'Pesan Ruangan' },
+                    { tab: 'lihatJadwal', label: 'Lihat Jadwal' }
                 ];
             } else if (currentRole === 'wabendum') {
                 items = [
@@ -740,7 +752,7 @@
 
         function showTab(tab) {
             currentTab = tab;
-            ['groupInput', 'dashboard', 'kelolaSetoran', 'kelolaAnggota', 'donasiNtt', 'kasIwb', 'kasNonIwb', 'pesanAdmin', 'pesanBendum', 'pemesananRuangan'].forEach(t => {
+            ['groupInput', 'dashboard', 'kelolaSetoran', 'kelolaAnggota', 'donasiNtt', 'kasIwb', 'kasNonIwb', 'pesanAdmin', 'pesanBendum', 'pesanRuangan', 'lihatJadwal'].forEach(t => {
                 const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 if (el) el.classList.toggle('hidden', t !== tab);
                 const btn = document.getElementById('btn-' + t);
@@ -765,7 +777,8 @@
             if (tab === 'kasNonIwb') { switchKasTab('NonIwb', 'rk'); }
             if (tab === 'pesanBendum') { loadPesanMasuk(); }
             if (tab === 'pesanAdmin') { loadPesanChatBendahara(); }
-            if (tab === 'pemesananRuangan') { loadPemesananRuangan(); }
+            if (tab === 'lihatJadwal') { loadPemesananRuangan(); }
+            if (tab === 'pesanRuangan') { document.getElementById('pemesananFormWrap').classList.remove('hidden'); }
         }
 
         /** Dipanggil dari tombol "Refresh" di header - muat ulang data halaman yang sedang aktif saja. */
@@ -782,7 +795,7 @@
             if (currentTab === 'kasNonIwb') { refreshKasTab('NonIwb'); return; }
             if (currentTab === 'pesanBendum') { if (pesanActiveGroup) { loadPesanChatAdmin(); } else { loadPesanMasuk(); } return; }
             if (currentTab === 'pesanAdmin') { loadPesanChatBendahara(); return; }
-            if (currentTab === 'pemesananRuangan') { loadPemesananRuangan(); return; }
+            if (currentTab === 'lihatJadwal') { loadPemesananRuangan(); return; }
         }
 
         async function loadMonthsInto(selectId, includeAll) {
@@ -2027,10 +2040,7 @@
         // PEMESANAN RUANGAN
         // =====================================================================
         async function loadPemesananRuangan() {
-            // Form untuk BPH, admin, dan staff (semua bisa isi). Kalau nanti ada peran view-only baru, sesuaikan lagi di sini.
             const isAdmin = currentRole === 'admin';
-            const canSubmit = ['bph', 'admin', 'staff'].includes(currentRole);
-            document.getElementById('pemesananFormWrap').classList.toggle('hidden', !canSubmit);
             document.getElementById('pemesananAksiHeader').textContent = isAdmin ? 'Aksi' : '';
 
             const body = document.getElementById('pemesananRuanganBody');
@@ -2044,12 +2054,12 @@
                         <td class="p-2 text-gray-400">${i + 1}</td>
                         <td class="p-2 font-bold">${p.hari}</td>
                         <td class="p-2">${p.tanggal}</td>
-                        <td class="p-2">${p.waktuStart}</td>
-                        <td class="p-2">${p.waktuStop}</td>
+                        <td class="p-2 whitespace-nowrap">${p.waktuStart} - ${p.waktuStop}</td>
                         <td class="p-2">${p.kegiatan}</td>
                         <td class="p-2">${p.ruangan}</td>
                         <td class="p-2">${p.namaPJ}</td>
                         <td class="p-2">${p.noHpPJ}</td>
+                        <td class="p-2 text-center">${p.jumlahPeserta}</td>
                         ${isAdmin ? `<td class="p-2 text-center whitespace-nowrap"><button onclick="toggleEditPemesanan(${p.row})" class="text-xs text-blue-600 font-bold mr-2">Edit</button><button onclick="hapusPemesanan(${p.row})" class="text-xs text-red-600 font-bold">Hapus</button></td>` : ''}
                     </tr>
                     ${isAdmin ? `
@@ -2089,6 +2099,10 @@
                                     <label class="block text-[10px] text-gray-400">No HP PJ</label>
                                     <input type="text" id="pemesanan-edit-nohp-${p.row}" value="${p.noHpPJ}" class="border rounded-lg p-1.5 text-xs w-28">
                                 </div>
+                                <div>
+                                    <label class="block text-[10px] text-gray-400">Jumlah Peserta</label>
+                                    <input type="number" min="1" id="pemesanan-edit-peserta-${p.row}" value="${p.jumlahPeserta}" class="border rounded-lg p-1.5 text-xs w-20">
+                                </div>
                                 <button onclick="simpanEditPemesanan(${p.row})" class="bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg">Simpan</button>
                             </div>
                         </td>
@@ -2111,9 +2125,10 @@
             const ruangan = document.getElementById('pemesanan-edit-ruangan-' + row).value;
             const namaPJ = document.getElementById('pemesanan-edit-namapj-' + row).value.trim();
             const noHpPJ = document.getElementById('pemesanan-edit-nohp-' + row).value.trim();
-            if (!tanggal || !start || !stop || !kegiatan || !ruangan || !namaPJ || !noHpPJ) { alert('Semua kolom wajib diisi.'); return; }
+            const jumlahPeserta = document.getElementById('pemesanan-edit-peserta-' + row).value;
+            if (!tanggal || !start || !stop || !kegiatan || !ruangan || !namaPJ || !noHpPJ || !jumlahPeserta) { alert('Semua kolom wajib diisi.'); return; }
             try {
-                const url = `${APPS_SCRIPT_URL}?action=updatePemesananRuangan&row=${row}&tanggal=${encodeURIComponent(tanggal)}&waktuStart=${encodeURIComponent(start)}&waktuStop=${encodeURIComponent(stop)}&kegiatan=${encodeURIComponent(kegiatan)}&ruangan=${encodeURIComponent(ruangan)}&namaPJ=${encodeURIComponent(namaPJ)}&noHpPJ=${encodeURIComponent(noHpPJ)}`;
+                const url = `${APPS_SCRIPT_URL}?action=updatePemesananRuangan&row=${row}&tanggal=${encodeURIComponent(tanggal)}&waktuStart=${encodeURIComponent(start)}&waktuStop=${encodeURIComponent(stop)}&kegiatan=${encodeURIComponent(kegiatan)}&ruangan=${encodeURIComponent(ruangan)}&namaPJ=${encodeURIComponent(namaPJ)}&noHpPJ=${encodeURIComponent(noHpPJ)}&jumlahPeserta=${encodeURIComponent(jumlahPeserta)}`;
                 const res = await fetch(url);
                 const json = await res.json();
                 if (json.success) { loadPemesananRuangan(); }
@@ -2143,10 +2158,11 @@
             const ruangan = document.getElementById('pemesananRuanganSelect').value;
             const namaPJ = document.getElementById('pemesananNamaPJ').value.trim();
             const noHpPJ = document.getElementById('pemesananNoHpPJ').value.trim();
+            const jumlahPeserta = document.getElementById('pemesananJumlahPeserta').value;
             const msgEl = document.getElementById('pemesananMsg');
             const btn = document.getElementById('pemesananSubmitBtn');
             msgEl.classList.add('hidden');
-            if (!tanggal || !start || !stop || !kegiatan || !ruangan || !namaPJ || !noHpPJ) {
+            if (!tanggal || !start || !stop || !kegiatan || !ruangan || !namaPJ || !noHpPJ || !jumlahPeserta) {
                 msgEl.textContent = 'Semua kolom wajib diisi.';
                 msgEl.className = 'text-xs text-center mt-2 text-red-600';
                 msgEl.classList.remove('hidden');
@@ -2155,7 +2171,7 @@
             btn.disabled = true;
             btn.textContent = 'Menyimpan...';
             try {
-                const url = `${APPS_SCRIPT_URL}?action=addPemesananRuangan&tanggal=${encodeURIComponent(tanggal)}&waktuStart=${encodeURIComponent(start)}&waktuStop=${encodeURIComponent(stop)}&kegiatan=${encodeURIComponent(kegiatan)}&ruangan=${encodeURIComponent(ruangan)}&namaPJ=${encodeURIComponent(namaPJ)}&noHpPJ=${encodeURIComponent(noHpPJ)}`;
+                const url = `${APPS_SCRIPT_URL}?action=addPemesananRuangan&tanggal=${encodeURIComponent(tanggal)}&waktuStart=${encodeURIComponent(start)}&waktuStop=${encodeURIComponent(stop)}&kegiatan=${encodeURIComponent(kegiatan)}&ruangan=${encodeURIComponent(ruangan)}&namaPJ=${encodeURIComponent(namaPJ)}&noHpPJ=${encodeURIComponent(noHpPJ)}&jumlahPeserta=${encodeURIComponent(jumlahPeserta)}`;
                 const res = await fetch(url);
                 const json = await res.json();
                 if (json.success) {
@@ -2167,6 +2183,7 @@
                     document.getElementById('pemesananKegiatan').value = '';
                     document.getElementById('pemesananNamaPJ').value = '';
                     document.getElementById('pemesananNoHpPJ').value = '';
+                    document.getElementById('pemesananJumlahPeserta').value = '';
                     loadPemesananRuangan();
                 } else {
                     msgEl.textContent = 'Gagal: ' + json.error;
