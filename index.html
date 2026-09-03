@@ -835,7 +835,6 @@
 
         async function loadDonasiStatusBadge() {
             const badgeEl = document.getElementById('donasiStatusBadge');
-            const formEl = document.getElementById('donasiFormFields');
             if (badgeEl) badgeEl.innerHTML = '<span class="text-xs text-gray-400">Memeriksa status...</span>';
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=checkDonasiNTTStatus&group=${encodeURIComponent(currentGroup)}`);
@@ -847,7 +846,7 @@
                         ? '<span class="px-3 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 border border-green-300">SUDAH SETOR</span>'
                         : '<span class="px-3 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 border border-red-300">BELUM SETOR</span>';
                 }
-                if (formEl) formEl.classList.toggle('hidden', sudah);
+                // Form tetap selalu ditampilkan - kelompok boleh submit donasi berkali-kali, tidak dibatasi.
             } catch (err) {
                 if (badgeEl) badgeEl.innerHTML = '';
             }
