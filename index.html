@@ -642,6 +642,12 @@
             const d = new Date();
             return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         }
+        /** Batas mundur untuk bendahara submit setoran bulan lalu: maksimal 3 bulan ke belakang dari bulan berjalan. */
+        function minMonthStr() {
+            const d = new Date();
+            d.setMonth(d.getMonth() - 3);
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
         function maxMonthStr() {
             const d = new Date();
             d.setFullYear(d.getFullYear() + 10);
@@ -735,7 +741,7 @@
                 ];
                 document.getElementById('groupNameLabel').textContent = currentGroup;
                 document.getElementById('periodInput').value = currentMonthStr();
-                document.getElementById('periodInput').min = currentMonthStr();
+                document.getElementById('periodInput').min = minMonthStr();
                 document.getElementById('periodInput').max = maxMonthStr();
                 document.getElementById('dashboardTitle').textContent = 'Laporan Kelompok ' + currentGroup;
                 document.getElementById('downloadReportBtn').classList.remove('hidden');
