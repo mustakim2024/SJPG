@@ -535,7 +535,11 @@
 
             <!-- ===== LIHAT JADWAL (tabel saja) ===== -->
             <section id="tabLihatJadwal" class="hidden">
-                <h3 class="font-bold mb-3">Lihat Jadwal Ruangan</h3>
+                <h3 class="font-bold mb-2">Lihat Jadwal Ruangan</h3>
+                <div class="flex flex-wrap items-center gap-4 mb-4 text-xs">
+                    <div class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded bg-green-100 border-2 border-green-500"></span> Kotak Hijau &rarr; Diinput BPH</div>
+                    <div class="flex items-center gap-1.5"><span class="inline-block w-4 h-4 rounded bg-blue-100 border-2 border-blue-500"></span> Kotak Biru &rarr; Diinput Staff</div>
+                </div>
                 <div class="overflow-x-auto border border-gray-100 rounded-xl">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-50">
@@ -2052,7 +2056,7 @@
                     <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}" id="pemesanan-row-${p.row}">
                         <td class="p-2 text-gray-400">${i + 1}</td>
                         <td class="p-2 font-bold">${p.hari}</td>
-                        <td class="p-2">${p.tanggal}</td>
+                        <td class="p-2">${p.diinputOleh === 'bph' ? `<span class="inline-block px-2 py-1 rounded-lg border-2 border-green-500 bg-green-50 font-bold">${p.tanggal}</span>` : p.diinputOleh === 'staff' ? `<span class="inline-block px-2 py-1 rounded-lg border-2 border-blue-500 bg-blue-50 font-bold">${p.tanggal}</span>` : p.tanggal}</td>
                         <td class="p-2 whitespace-nowrap">${p.waktuStart} - ${p.waktuStop}</td>
                         <td class="p-2">${p.kegiatan}</td>
                         <td class="p-2">${p.ruangan}</td>
@@ -2170,7 +2174,7 @@
             btn.disabled = true;
             btn.textContent = 'Menyimpan...';
             try {
-                const url = `${APPS_SCRIPT_URL}?action=addPemesananRuangan&tanggal=${encodeURIComponent(tanggal)}&waktuStart=${encodeURIComponent(start)}&waktuStop=${encodeURIComponent(stop)}&kegiatan=${encodeURIComponent(kegiatan)}&ruangan=${encodeURIComponent(ruangan)}&namaPJ=${encodeURIComponent(namaPJ)}&noHpPJ=${encodeURIComponent(noHpPJ)}&jumlahPeserta=${encodeURIComponent(jumlahPeserta)}`;
+                const url = `${APPS_SCRIPT_URL}?action=addPemesananRuangan&tanggal=${encodeURIComponent(tanggal)}&waktuStart=${encodeURIComponent(start)}&waktuStop=${encodeURIComponent(stop)}&kegiatan=${encodeURIComponent(kegiatan)}&ruangan=${encodeURIComponent(ruangan)}&namaPJ=${encodeURIComponent(namaPJ)}&noHpPJ=${encodeURIComponent(noHpPJ)}&jumlahPeserta=${encodeURIComponent(jumlahPeserta)}&diinputOleh=${encodeURIComponent(currentRole)}`;
                 const res = await fetch(url);
                 const json = await res.json();
                 if (json.success) {
