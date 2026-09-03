@@ -483,6 +483,64 @@
                 </div>
             </section>
 
+            <!-- ===== PEMESANAN RUANGAN (BPH: isi+lihat, staff: lihat saja) ===== -->
+            <section id="tabPemesananRuangan" class="hidden">
+                <h3 class="font-bold mb-3">Pemesanan Ruangan</h3>
+
+                <div id="pemesananFormWrap" class="hidden bg-gray-50 border border-gray-100 rounded-2xl p-4 mb-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Tanggal</label>
+                            <input type="date" id="pemesananTanggal" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Waktu</label>
+                            <input type="time" id="pemesananWaktu" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Kegiatan</label>
+                            <input type="text" id="pemesananKegiatan" placeholder="Nama kegiatan..." class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Ruangan</label>
+                            <select id="pemesananRuanganSelect" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                                <option value="Room Kaca">Room Kaca</option>
+                                <option value="Room Belakang">Room Belakang</option>
+                                <option value="Aula">Aula</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Nama PJ</label>
+                            <input type="text" id="pemesananNamaPJ" placeholder="Nama penanggung jawab..." class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">No HP PJ</label>
+                            <input type="text" inputmode="numeric" id="pemesananNoHpPJ" placeholder="08xxxxxxxxxx" class="w-full border-2 border-white bg-white p-2 rounded-lg text-sm outline-none">
+                        </div>
+                    </div>
+                    <button onclick="submitPemesananRuangan()" id="pemesananSubmitBtn" class="w-full mt-3 bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Submit</button>
+                    <p id="pemesananMsg" class="text-xs text-center mt-2 hidden"></p>
+                </div>
+
+                <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="text-left p-2 font-bold w-10">No</th>
+                                <th class="text-left p-2 font-bold">Hari</th>
+                                <th class="text-left p-2 font-bold">Tanggal</th>
+                                <th class="text-left p-2 font-bold">Waktu</th>
+                                <th class="text-left p-2 font-bold">Kegiatan</th>
+                                <th class="text-left p-2 font-bold">Ruangan</th>
+                                <th class="text-left p-2 font-bold">Nama PJ</th>
+                                <th class="text-left p-2 font-bold">No HP PJ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pemesananRuanganBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
             </main>
         </div>
     </div>
@@ -635,7 +693,12 @@
                     { tab: 'dashboard', label: 'Dashboard' },
                     { tab: 'donasiNtt', label: 'Donasi NTT' },
                     { tab: 'kasIwb', label: 'Kas IWB' },
-                    { tab: 'kasNonIwb', label: 'Kas Non IWB' }
+                    { tab: 'kasNonIwb', label: 'Kas Non IWB' },
+                    { tab: 'pemesananRuangan', label: 'Pemesanan Ruangan' }
+                ];
+            } else if (currentRole === 'staff') {
+                items = [
+                    { tab: 'pemesananRuangan', label: 'Pemesanan Ruangan' }
                 ];
             } else if (currentRole === 'wabendum') {
                 items = [
@@ -669,7 +732,7 @@
 
         function showTab(tab) {
             currentTab = tab;
-            ['groupInput', 'dashboard', 'kelolaSetoran', 'kelolaAnggota', 'donasiNtt', 'kasIwb', 'kasNonIwb', 'pesanAdmin', 'pesanBendum'].forEach(t => {
+            ['groupInput', 'dashboard', 'kelolaSetoran', 'kelolaAnggota', 'donasiNtt', 'kasIwb', 'kasNonIwb', 'pesanAdmin', 'pesanBendum', 'pemesananRuangan'].forEach(t => {
                 const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 if (el) el.classList.toggle('hidden', t !== tab);
                 const btn = document.getElementById('btn-' + t);
@@ -694,6 +757,7 @@
             if (tab === 'kasNonIwb') { switchKasTab('NonIwb', 'rk'); }
             if (tab === 'pesanBendum') { loadPesanMasuk(); }
             if (tab === 'pesanAdmin') { loadPesanChatBendahara(); }
+            if (tab === 'pemesananRuangan') { loadPemesananRuangan(); }
         }
 
         /** Dipanggil dari tombol "Refresh" di header - muat ulang data halaman yang sedang aktif saja. */
@@ -710,6 +774,7 @@
             if (currentTab === 'kasNonIwb') { refreshKasTab('NonIwb'); return; }
             if (currentTab === 'pesanBendum') { if (pesanActiveGroup) { loadPesanChatAdmin(); } else { loadPesanMasuk(); } return; }
             if (currentTab === 'pesanAdmin') { loadPesanChatBendahara(); return; }
+            if (currentTab === 'pemesananRuangan') { loadPemesananRuangan(); return; }
         }
 
         async function loadMonthsInto(selectId, includeAll) {
@@ -1947,6 +2012,82 @@
                 }
             } catch (err) {
                 alert('Terjadi kesalahan koneksi: ' + err.message);
+            }
+        }
+
+        // =====================================================================
+        // PEMESANAN RUANGAN
+        // =====================================================================
+        async function loadPemesananRuangan() {
+            // Form cuma untuk BPH (isi), staff cuma lihat tabel.
+            document.getElementById('pemesananFormWrap').classList.toggle('hidden', currentRole !== 'bph');
+
+            const body = document.getElementById('pemesananRuanganBody');
+            body.innerHTML = '<tr><td colspan="8" class="p-3 text-center text-xs text-gray-400">Memuat...</td></tr>';
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=listPemesananRuangan`);
+                const json = await res.json();
+                const data = json.success ? json.data : [];
+                body.innerHTML = data.map((p, i) => `
+                    <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                        <td class="p-2 text-gray-400">${i + 1}</td>
+                        <td class="p-2 font-bold">${p.hari}</td>
+                        <td class="p-2">${p.tanggal}</td>
+                        <td class="p-2">${p.waktu}</td>
+                        <td class="p-2">${p.kegiatan}</td>
+                        <td class="p-2">${p.ruangan}</td>
+                        <td class="p-2">${p.namaPJ}</td>
+                        <td class="p-2">${p.noHpPJ}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="8" class="p-4 text-center text-xs text-gray-400">Belum ada pemesanan ruangan</td></tr>';
+            } catch (err) {
+                body.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-xs text-red-500">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function submitPemesananRuangan() {
+            const tanggal = document.getElementById('pemesananTanggal').value;
+            const waktu = document.getElementById('pemesananWaktu').value;
+            const kegiatan = document.getElementById('pemesananKegiatan').value.trim();
+            const ruangan = document.getElementById('pemesananRuanganSelect').value;
+            const namaPJ = document.getElementById('pemesananNamaPJ').value.trim();
+            const noHpPJ = document.getElementById('pemesananNoHpPJ').value.trim();
+            const msgEl = document.getElementById('pemesananMsg');
+            const btn = document.getElementById('pemesananSubmitBtn');
+            msgEl.classList.add('hidden');
+            if (!tanggal || !waktu || !kegiatan || !ruangan || !namaPJ || !noHpPJ) {
+                msgEl.textContent = 'Semua kolom wajib diisi.';
+                msgEl.className = 'text-xs text-center mt-2 text-red-600';
+                msgEl.classList.remove('hidden');
+                return;
+            }
+            btn.disabled = true;
+            btn.textContent = 'Menyimpan...';
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=addPemesananRuangan&tanggal=${encodeURIComponent(tanggal)}&waktu=${encodeURIComponent(waktu)}&kegiatan=${encodeURIComponent(kegiatan)}&ruangan=${encodeURIComponent(ruangan)}&namaPJ=${encodeURIComponent(namaPJ)}&noHpPJ=${encodeURIComponent(noHpPJ)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.success) {
+                    msgEl.textContent = 'Pemesanan ruangan berhasil disimpan.';
+                    msgEl.className = 'text-xs text-center mt-2 text-green-600';
+                    document.getElementById('pemesananTanggal').value = '';
+                    document.getElementById('pemesananWaktu').value = '';
+                    document.getElementById('pemesananKegiatan').value = '';
+                    document.getElementById('pemesananNamaPJ').value = '';
+                    document.getElementById('pemesananNoHpPJ').value = '';
+                    loadPemesananRuangan();
+                } else {
+                    msgEl.textContent = 'Gagal: ' + json.error;
+                    msgEl.className = 'text-xs text-center mt-2 text-red-600';
+                }
+                msgEl.classList.remove('hidden');
+            } catch (err) {
+                msgEl.textContent = 'Terjadi kesalahan koneksi: ' + err.message;
+                msgEl.className = 'text-xs text-center mt-2 text-red-600';
+                msgEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Submit';
             }
         }
 
