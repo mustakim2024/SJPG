@@ -2347,6 +2347,7 @@
             const rows = kasRkRows[variant] || [];
             const readOnly = isKasReadOnly(variant);
             const isAdmin = currentRole === 'admin';
+            const isWabendumLocked = currentRole === 'wabendum'; // data hasil parsing PDF terkunci, cuma Keterangan yang boleh diisi
             const saldoAkhir = rows.length ? rows[rows.length - 1].saldo : 0;
             const saldoHtml = `
                 <div class="bg-primary/10 border border-primary/30 rounded-xl p-3 mb-4">
@@ -2359,7 +2360,7 @@
                     <label class="block text-xs font-bold text-gray-500 mb-2">Upload PDF Rekening Koran Bank BSI</label>
                     <input type="file" accept="application/pdf" id="kasPdfInput-${variant}" class="text-xs mb-2">
                     <button onclick="prosesPdfRekeningKoran('${variant}')" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">Proses PDF</button>
-                    <p class="text-xs text-gray-400 mt-2">Hasil ekstraksi otomatis dari PDF bisa tidak 100% akurat &mdash; periksa & koreksi tiap baris sebelum klik Simpan. Berkas yang sama tidak bisa disimpan dua kali.</p>
+                    <p class="text-xs text-gray-400 mt-2">${isWabendumLocked ? 'Data hasil pembacaan PDF (Tanggal, Uraian, Debit, Kredit, Saldo) tidak bisa diubah &mdash; hanya kolom Keterangan yang bisa diisi. Berkas yang sama tidak bisa disimpan dua kali.' : 'Hasil ekstraksi otomatis dari PDF bisa tidak 100% akurat &mdash; periksa & koreksi tiap baris sebelum klik Simpan. Berkas yang sama tidak bisa disimpan dua kali.'}</p>
                     <p id="kasPdfMsg-${variant}" class="text-xs mt-2 hidden"></p>
                 </div>
             `;
@@ -2382,6 +2383,17 @@
                     <td class="p-1.5 text-right">${fmtRp(r.kredit)}</td>
                     <td class="p-1.5 text-right">${fmtRp(r.saldo)}</td>
                     <td class="p-1.5">${r.keterangan || ''}</td>
+                </tr>
+            ` : isWabendumLocked ? `
+                <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                    <td class="p-1.5 text-gray-400">${i + 1}</td>
+                    <td class="p-1.5">${r.tanggal || ''}</td>
+                    <td class="p-1.5">${String(r.uraian || '')}</td>
+                    <td class="p-1.5 text-right">${fmtRp(r.debit)}</td>
+                    <td class="p-1.5 text-right">${fmtRp(r.kredit)}</td>
+                    <td class="p-1.5 text-right">${fmtRp(r.saldo)}</td>
+                    <td class="p-1"><input class="border rounded p-1 text-xs w-full min-w-[120px]" value="${String(r.keterangan || '').replace(/"/g, '&quot;')}" onchange="updateKasRkCell('${variant}',${i},'keterangan',this.value)" placeholder="Keterangan..."></td>
+                    <td class="p-1"><button onclick="hapusKasRkRow('${variant}',${i})" class="text-red-500 text-xs font-bold px-1">&times;</button></td>
                 </tr>
             ` : `
                 <tr class="border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
